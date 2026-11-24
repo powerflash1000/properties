@@ -19,6 +19,8 @@ Private repo for the family's properties (apartment now; villa and chalet later)
 - `model.json` walls are pre-split at junctions (ids like `V7d`) so one segment can be moved alone. Moving a wall shifts the rooms' edges and the ends of perpendicular walls that meet it; junction jogs may need a manual fix in `model.json`.
 - To make a user's edits permanent, apply them to `model.json` (furniture `x/z/ry`, wall `p`, `op`, room rects) and push.
 
+- Wall panel also has «حط عفش على الحيطة دي»: picks a side (room) and a type (TV unit, bookcase, wardrobe, sofa, console, mirror, desk, bed); the item is snapped back-to-wall at the last tapped point (`snapItemToWall` using the item's bounding box) and then selected for moving. Furniture panel has «ألصقه بأقرب حيطة» and «عدّل الزاوية»; items added "in front of me" are rotated to a multiple of 90°.
+
 ## Controls (walk mode)
 - Left stick (deadzone + curve, speed slider), drag to look (sensitivity/invert), «👁 أفقي» levels the view, ⟲/⟳ 90° snap turns, 🔄 auto 360°, double-tap floor = glide there, minimap (bottom-left) shows position/heading and teleports on tap, auto-level pitch while walking. Quality high/mid/low with auto-downgrade when the average frame time is >40 ms.
 

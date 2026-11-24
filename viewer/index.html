@@ -413,7 +413,7 @@ function dupItem(){const it=selId&&itemById(selId);if(!it)return;const n=Object.
 function resetItem(){if(!selId)return;delete edits.mod[selId];saveEdits();applyEdits();refurnish()}
 function resetAll(){edits={mod:{},del:[],add:[],w:[]};saveEdits();applyEdits();selId=null;selWall=null;selOp=null;rebuild();renderTabs()}
 function addItem(type){const [fx,fz]=viewFwd();const bx=mode==='walk'?pos.x+fx*1.8:orbit.t.x,bz=mode==='walk'?pos.z+fz*1.8:orbit.t.z;
-  const it={id:'new-'+type+'-'+(Date.now()%100000),name:(TYPE_NAMES[type]||type)+' (جديد)',type,x:+bx.toFixed(2),z:+bz.toFixed(2),ry:+Math.atan2(-fx,-fz).toFixed(3),args:Object.assign({},ADD_ARGS[type]||{})};
+  const it={id:'new-'+type+'-'+(Date.now()%100000),name:(TYPE_NAMES[type]||type)+' (جديد)',type,x:+bx.toFixed(2),z:+bz.toFixed(2),ry:+(Math.round(Math.atan2(-fx,-fz)/(Math.PI/2))*Math.PI/2).toFixed(4),args:Object.assign({},ADD_ARGS[type]||{})};
   edits.add.push(it);saveEdits();applyEdits();selId=it.id;refurnish()}
 function roomName(x,z){const r=roomAt(x,z);return r?r.n:'برّه'}
 function updateSelInfo(){const el=document.getElementById('selInfo');if(!el)return;const it=selId&&itemById(selId);
@@ -562,6 +562,23 @@ function wallHL(){
   wHL=new T.Mesh(new T.BoxGeometry(sx,sy,sz),new T.MeshBasicMaterial({color:0xffb703,transparent:true,opacity:.38,depthTest:false}));wHL.position.set(cx,cy,cz);wHL.renderOrder=30;wallGrp.add(wHL)}
 function wallSides(w){const m=w.ax==='v'?[w.p,(w.a+w.b)/2]:[(w.a+w.b)/2,w.p],off=w.t/2+.1;
   const P1=w.ax==='v'?roomAt(m[0]+off,m[1]):roomAt(m[0],m[1]+off),N1=w.ax==='v'?roomAt(m[0]-off,m[1]):roomAt(m[0],m[1]-off);return{P:P1,N:N1}}
+/* ===== snap furniture to walls ===== */
+function wallFacing(x,z,maxd){maxd=maxd||2.5;let best=null;
+  for(const w of WALLS){if(w.removed)continue;const vert=w.ax==='v',along=vert?z:x,across=vert?x:z;if(along<w.a-.3||along>w.b+.3)continue;
+    const dd=Math.abs(across-w.p)-w.t/2;if(dd<-.05||dd>maxd)continue;if(!best||dd<best.d)best={w,d:dd,s:across>=w.p?1:-1,along}}
+  return best}
+function snapItemToWall(it,b){b=b||wallFacing(it.x,it.z);if(!b)return null;const w=b.w,vert=w.ax==='v',s=b.s,fn=BUILD[it.type];if(!fn)return null;
+  const bb=new T.Box3().setFromObject(fn(it.args||{}));const back=-bb.min.z+.02,face=w.p+s*w.t/2+s*back;
+  const along=Math.max(w.a+.1,Math.min(w.b-.1,b.along));
+  return{x:+(vert?face:along).toFixed(3),z:+(vert?along:face).toFixed(3),ry:+(vert?Math.atan2(s,0):Math.atan2(0,s)).toFixed(4)}}
+const WALL_ITEMS=[['tvUnit','تلفزيون',{w:1.8}],['wardrobe','مكتبة',{w:2,d:.4,h:2.2}],['wardrobe','دولاب',{w:2.4,d:.6}],['sofa','كنبة',{w:2.2}],['boxitem','كونسول',{w:1.2,h:.8,d:.35,mat:'wood'}],['nstand','كومودينو',{}],['mirror','مراية',{t:.04,h:1.7,w:.9,y:.2}],['desk','مكتب',{w:1.4,d:.7}],['bed','سرير (راسه على الحيطة)',{w:1.6,l:2}]];
+let wSide=0;
+function defaultSide(w){const sd=wallSides(w);if(wSide)return wSide;if(mode==='walk')return((w.ax==='v'?pos.x:pos.z)>=w.p)?1:-1;return sd.P?1:-1}
+function putOnWall(idx){const w=selWall&&WALLS.find(q=>q.id===selWall);if(!w)return;const [type,name,args]=WALL_ITEMS[idx],vert=w.ax==='v';
+  const c=lastHit&&lastHit.wid===w.id?lastHit.c:(w.a+w.b)/2;
+  const it={id:'new-'+type+'-'+(Date.now()%100000),name:name+' (جديد)',type,x:0,z:0,ry:0,args:Object.assign({},args)};
+  const p=snapItemToWall(it,{w,s:defaultSide(w),along:c,d:0});if(!p)return;Object.assign(it,p);
+  edits.add.push(it);saveEdits();applyEdits();selWall=null;selOp=null;wallHL();selId=it.id;refurnish();openFurnTab()}
 function wallOp(op){edits.w.push(op);saveEdits();applyEdits();rebuild();wallHL();renderWallPanel()}
 function selectWallHit(x,y){setRay(x,y);const hits=ray.intersectObjects(wallGrp.children,true).filter(h=>h.object.isMesh&&h.object!==wHL);
   for(const h of hits){let o=h.object;while(o&&!(o.userData&&(o.userData.oid||o.userData.wid)))o=o.parent;if(!o)continue;
@@ -579,7 +596,10 @@ function renderWallPanel(){
     <div class="note" style="margin-top:8px">حرّك الحيطة (الغرفة اللي ناحيتها بتضيق والتانية بتوسع):</div>
     <div class="chips"><button data-w="mv-">ناحية ${sd.N?sd.N.n:'برّه'}</button><button data-w="mv+">ناحية ${sd.P?sd.P.n:'برّه'}</button></div>
     <div class="note" style="margin-top:8px">ضيف فتحة (مكان آخر ضغطة):</div>
-    <div class="chips"><button data-w="add:win">شباك</button><button data-w="add:door">باب</button><button data-w="add:slide">باب تراس</button><button data-w="add:arch">فتحة واسعة</button></div>`}
+    <div class="chips"><button data-w="add:win">شباك</button><button data-w="add:door">باب</button><button data-w="add:slide">باب تراس</button><button data-w="add:arch">فتحة واسعة</button></div>
+    <div class="note" style="margin-top:10px"><b>حط عفش على الحيطة دي</b> (بيتلزق بيها ومستقيم، وتحرّكه بعد كده):</div>
+    <div class="chips"><button data-wside="-1" class="${defaultSide(w)===-1?'on':''}">ناحية ${sd.N?sd.N.n:'برّه'}</button><button data-wside="1" class="${defaultSide(w)===1?'on':''}">ناحية ${sd.P?sd.P.n:'برّه'}</button></div>
+    <div class="chips" style="margin-top:6px">${WALL_ITEMS.map((x,i)=>`<button data-wput="${i}">${x[1]}</button>`).join('')}</div>`}
   else h='<span class="note">اضغط على حيطة أو شباك أو باب في الشقة.</span>';
   const n=(edits.w||[]).length;
   h+=`<div class="chips" style="margin-top:12px"><button data-w="undo" ${n?'':'disabled'}>تراجع آخر تعديل (${n})</button><button data-w="reset" ${n?'':'disabled'}>رجّع كل الحيطان زي الأصل</button></div>`;
@@ -682,8 +702,9 @@ function renderTabs(){
     <div class="row"><label for="fsel">اختار قطعة</label><select id="fsel"><option value="">—</option>${rooms.map(r=>{const l=byRoom(r);return l.length?`<optgroup label="${r.n}">${l.map(i=>`<option value="${i.id}" ${i.id===selId?'selected':''}>${esc2(i.name)}</option>`).join('')}</optgroup>`:''}).join('')}</select></div>
     <div id="selInfo" style="margin:8px 0"></div>
     <div class="chips" id="stepChips">${[[.05,'5 سم'],[.1,'10 سم'],[.25,'25 سم'],[.5,'50 سم']].map(([v,l])=>`<button data-step="${v}" class="${stepM===v?'on':''}">${l}</button>`).join('')}</div>
-    <div class="dpad"><span class="sp"></span><button data-mv="f" aria-label="لقدام">▲</button><span class="sp"></span><button data-mv="l" aria-label="شمال">◀</button><button data-mv="b" aria-label="لورا">▼</button><button data-mv="r" aria-label="يمين">▶</button></div>
+    <div class="dpad"><span class="sp"></span><button data-mv="f" aria-label="لقدام (ناحية بعيد عنك)">▲</button><span class="sp"></span><button data-mv="l" aria-label="شمال">◀</button><button data-mv="b" aria-label="لورا">▼</button><button data-mv="r" aria-label="يمين">▶</button></div>
     <div class="chips"><button data-rot="-0.2618">⟲ 15°</button><button data-rot="0.2618">⟳ 15°</button><button data-rot="1.5708">↻ 90°</button><button data-act="dup">نسخة</button><button data-act="del">شيل</button><button data-act="reset">رجّع القطعة</button></div>
+    <div class="chips" style="margin-top:6px"><button data-act="snapwall">ألصقه بأقرب حيطة</button><button data-act="straight">عدّل الزاوية (مستقيم)</button></div>
     <h4>إضافة قطعة جديدة (قدامي)</h4>
     <div class="chips">${ADDABLE.map(t=>`<button data-add="${t}">${TYPE_NAMES[t]}</button>`).join('')}</div>
     <h4>إظهار</h4>${tg('flab','أسماء العفش على الشاشة',ST.flab)}${tg('fdir','سهم أصفر بيبيّن اتجاه واجهة كل قطعة',ST.fdir)}
@@ -756,12 +777,14 @@ function renderQty(){if(tab==='qty')renderTabs()}
 const dirty=()=>{save()};
 $('body').addEventListener('click',e=>{
   const b=e.target.closest('button');if(!b)return;
+  if(b.dataset.wput!=null){putOnWall(+b.dataset.wput);return}
+  if(b.dataset.wside){wSide=+b.dataset.wside;renderWallPanel();return}
   if(b.dataset.w){wallAction(b.dataset.w);return}
   if(b.dataset.step){stepM=+b.dataset.step;document.querySelectorAll('#stepChips button').forEach(x=>x.classList.toggle('on',x===b));return}
   if(b.dataset.mv){nudge(b.dataset.mv);return}
   if(b.dataset.rot){rotItem(+b.dataset.rot);return}
   if(b.dataset.add){addItem(b.dataset.add);renderTabs();return}
-  if(b.dataset.act){const a=b.dataset.act;if(a==='dup')dupItem();else if(a==='del'){delItem();renderTabs()}else if(a==='reset')resetItem();else if(a==='resetall')resetAll();else if(a==='copyedits')copyText(editsText(),'copyMsg');else if(a==='copylink')copyText(shareLink(),'copyMsg');return}
+  if(b.dataset.act){const a=b.dataset.act;if(a==='snapwall'){const it=selId&&itemById(selId);const pp=it&&snapItemToWall(it);if(pp){patchItem(selId,pp);refurnish()}else toast('مفيش حيطة قريبة من القطعة دي')}else if(a==='straight'){const it=selId&&itemById(selId);if(it){patchItem(selId,{ry:+(Math.round((it.ry||0)/(Math.PI/2))*Math.PI/2).toFixed(4)});refurnish()}}else if(a==='dup')dupItem();else if(a==='del'){delItem();renderTabs()}else if(a==='reset')resetItem();else if(a==='resetall')resetAll();else if(a==='copyedits')copyText(editsText(),'copyMsg');else if(a==='copylink')copyText(shareLink(),'copyMsg');return}
   if(b.dataset.hr){ST.hour=+b.dataset.hr;setTime();renderTabs();dirty();return}
   const k=b.dataset.k;if(k==null)return;let v=b.dataset.v;
   if(k.startsWith('lay.')){ST.lay[k.slice(4)]=+v;rebuild()}
@@ -825,7 +848,7 @@ function boot(){
   if(innerWidth<760)sheetOpen(false);
   let last=performance.now();
   (function loop(now){requestAnimationFrame(loop);const raw=(now-last)/1000,dt=Math.min(.05,raw);last=now;perf(raw);step(dt);drawMini();applyCam();if(mode==='walk'&&(mv.x||mv.y||glide||ST.spin||(++hudN%10===0)))hud();if(boxHelper)boxHelper.update();updateLabels();renderer.render(scene,cam)})(last);
-  window.__walk={get pitch(){return pitch},set pitch(v){pitch=v},get pos(){return pos},get yaw(){return yaw},get glide(){return glide},toast,wallOp,wallAction,OPINFO,get WALLS(){return WALLS},get ROOMS(){return ROOMS},setSel:(w,o)=>{selWall=w;selOp=o||null;wallHL();renderWallPanel()},ST,P,goPreset,setMode,rebuild,get Q(){return Q},cam,scene,get FURN(){return FURN},get edits(){return edits},selectItem,nudge,rotItem,addItem,delItem,orbit,focusRoom,orbitZoom,get mode(){return mode},enterHere,refurnish,furnMap};
+  window.__walk={putOnWall,snapItemToWall,itemById,get selId(){return selId},get selWall(){return selWall},get lastHit(){return lastHit},get pitch(){return pitch},set pitch(v){pitch=v},get pos(){return pos},get yaw(){return yaw},get glide(){return glide},toast,wallOp,wallAction,OPINFO,get WALLS(){return WALLS},get ROOMS(){return ROOMS},setSel:(w,o)=>{selWall=w;selOp=o||null;wallHL();renderWallPanel()},ST,P,goPreset,setMode,rebuild,get Q(){return Q},cam,scene,get FURN(){return FURN},get edits(){return edits},selectItem,nudge,rotItem,addItem,delItem,orbit,focusRoom,orbitZoom,get mode(){return mode},enterHere,refurnish,furnMap};
 }
 (window.MODEL_INLINE?Promise.resolve(window.MODEL_INLINE):fetch('../apartments/'+APT+'/model.json').then(r=>{if(!r.ok)throw new Error('HTTP '+r.status);return r.json()}))
  .then(m=>{applyModel(m);boot()}).catch(e=>{const x=$('err');x.style.display='flex';x.textContent='ما قدرتش أحمّل بيانات العقار: '+e.message});

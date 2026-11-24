@@ -1,0 +1,25 @@
+# CLAUDE.md — عقارات
+
+Working memory for Claude sessions. Talk to the user in Egyptian Arabic, short and practical.
+
+## What this is
+Private repo for the family's properties (apartment now; villa and chalet later). Each property = one folder under `apartments/<id>/` with a single `model.json`. The 3D viewer (`viewer/index.html`, three.js r128 from cdnjs, no build step) reads it. **Keep the repo private** (plans of owned property).
+
+## Conventions
+- Units: meters. x = east on the plan image, z = south (down). y = up. Rotation `ry` in radians; the furniture "front" is local +z (the yellow arrow shows it).
+- `model.json`: `params` (ceiling, door height/width, balcony door width, window sill), `rooms` (interior rects, kinds `liv din kit wet bed dr cor foy ter land`), `walls` (center line `p`, run `a..b`, thickness `t`, openings `op` with centre `c` along the wall; types `win slide door front arch`), `furniture` (id, Arabic `name`, `type`, `x`, `z`, `ry`, `args`, optional `when` {layout, v, kitOpen} and `curtain`).
+- Furniture types are built in the viewer's `BUILD` registry (sofa, bed, wardrobe, …). To move something the user names, edit its `x/z/ry` in `model.json` (find it by Arabic name/id). To add a type, add a builder to `BUILD`.
+- Layout variants: items with `when.layout` show only when that layout is selected (`liv`, `din`, `kit`, `b1`, `b2`).
+- Test every change with Playwright (swiftshader WebGL works; route cdnjs three to a local copy from `npm pack three@0.128.0`).
+- Publish the viewer as an artifact with `python3 tools/build_single.py apt1 out.html` then the Artifact tool (the old artifact URL for the apartment is https://claude.ai/artifact/C5eZfG8Ci5wqokLVbiGcU3 — republish the same file path to keep it).
+- Commit with `git -c user.name="Claude" -c user.email="noreply@anthropic.com"`.
+
+## Apartment 1 — known facts (from the owner)
+- Total 202 m² (gross); dimensions on the plan sum to ~140 m² net. Ceiling 2.70 m. Doors ~1.0×2.30 m. Balcony doors ~1.5 m. Reception window 1×1 m, kitchen window ~1.1 m, small bathroom windows.
+- Corridor length 10.30 m (3.65+1.6+3.2+1.9), width ~1.5 m (assumed). Entrance foyer ~2.0×1.9 m.
+- Reception balconies face the sea (Alexandria → north). All corners face streets: the apartment holds 3 corners of a 3-apartment building (ours on the right, duplex in the middle). The master looks to the back side.
+- Still needed: bedroom window sizes, structural walls/columns, shafts, the real corridor width, the shared landing/stairs, material photos.
+- Lighting default is a neutral "studio" light until the sun direction is confirmed.
+
+## Roadmap
+Realistic renders: export `model.json` to Blender (Cycles, bpy) for photoreal stills/360° panoramas; apply real material photos as textures; villa and chalet folders.

@@ -26,9 +26,13 @@ Private repo for the family's properties (apartment now; villa and chalet later)
 ## Controls (walk mode)
 - Left stick (default: left/right turn in place, up/down walk; option "strafe"; deadzone + curve, speed + turn-speed sliders), drag to look (sensitivity/invert), «👁 أفقي» levels the view, ⟲/⟳ 90° snap turns, 🔄 auto 360° (separate left/right buttons, speed slider, any touch stops it), double-tap floor = glide there, minimap (bottom-left) shows position/heading and teleports on tap, auto-level pitch while walking. Quality high/mid/low with auto-downgrade when the average frame time is >40 ms.
 
+## Registration against the plan photo (2026-11-24)
+- Never trust eyeballed coordinates. `tools/overlay_plan.py PHOTO model.json out.png` draws walls (red), doors (green), windows (blue) on the photo (EXIF-corrected; mapping px=100+61·x, py=35+61·z). Wall lines were also snapped by measuring dark-pixel profiles. After this fit: master/dressing/bath/corridor walls moved ~0.4 m north; corridor is ~1.25 m wide in the drawing (owner guessed 1.5); the dressing is entered from the corridor-end door and is **open to the master** in its north ~1 m (no wall there); the master-suite bath door is on the dressing wall, not on the corridor; foyer ~2.2×2.0 with the front door near its east side.
+- Door positions measured from the photo: Bed2 c≈3.37, dressing door c≈4.35 (on x=17.87), bath-C door c≈6.3 (same wall), Bed1 door c≈15.6, kitchen door c≈10.15, front door c≈8.95.
+
 ## Apartment 1 — known facts (from the owner)
 - Total 202 m² (gross); dimensions on the plan sum to ~140 m² net. Ceiling 2.70 m. Doors ~1.0×2.30 m. Balcony doors ~1.5 m. Reception window 1×1 m, kitchen window ~1.1 m, small bathroom windows.
-- Corridor length 10.30 m (3.65+1.6+3.2+1.9), width ~1.5 m (assumed). Entrance foyer ~2.0×1.9 m.
+- Corridor length 10.30 m (3.65+1.6+3.2+1.9); width ~1.25 m measured on the plan (owner guessed 1.5, unconfirmed). Entrance foyer ~2.0×1.9 m.
 - Reception balconies face the sea (Alexandria → north). All corners face streets: the apartment holds 3 corners of a 3-apartment building (ours on the right, duplex in the middle). The master looks to the back side.
 - Still needed: bedroom window sizes, structural walls/columns, shafts, the real corridor width, the shared landing/stairs, material photos.
 - Lighting default is a neutral "studio" light until the sun direction is confirmed.

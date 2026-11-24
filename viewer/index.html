@@ -537,7 +537,7 @@ const PRESETS=[
 function goPreset(i){const p=PRESETS[i];setMode('walk');pos.set(p[1],P.eye,p[2]);yaw=p[3];pitch=p[4];applyCam();hud()}
 function renderPresets(){
   const el=$('presets');
-  el.innerHTML=mode==='walk'?PRESETS.map((p,i)=>`<button data-i="${i}">${p[0]}</button>`).join(''):`<button data-all="1">الشقة كلها</button>`+ROOMS.filter(r=>!['land'].includes(r.k)).map(r=>`<button data-room="${r.id}">${r.n}</button>`).join('');
+  el.innerHTML=mode==='walk'?PRESETS.map((p,i)=>`<button data-i="${i}">${p[0]}</button>`).join(''):`<button data-all="1">الشقة كلها</button>`+ROOMS.filter(r=>r.k!=='land'&&r.n).map(r=>`<button data-room="${r.id}">${r.n}</button>`).join('');
 }
 function setMode(m){mode=m;$('bMode').textContent=m==='walk'?'منظور علوي':'مشي';$('bMode').classList.toggle('on',m!=='walk');$('stick').style.display=m==='walk'?'block':'none';
   document.querySelectorAll('.orbonly').forEach(b=>b.style.display=m==='walk'?'none':'block');document.querySelectorAll('.walkonly').forEach(b=>b.style.display=m==='walk'?'block':'none');$('bLevel').style.display=m==='walk'?'':'none';$('mini').style.display=m==='walk'?'block':'none';
@@ -685,7 +685,7 @@ mini.addEventListener('pointerdown',e=>{e.stopPropagation();e.preventDefault();c
 /* ================= labels ================= */
 function renderLabels(){
   const c=$('labels');c.innerHTML='';
-  if(ST.labels)ROOMS.forEach(r=>{if(r.k==='land')return;const d=document.createElement('div');d.className='lbl room';d.textContent=r.n;d.dataset.r=r.id;c.appendChild(d)});
+  if(ST.labels)ROOMS.forEach(r=>{if(r.k==='land'||!r.n)return;const d=document.createElement('div');d.className='lbl room';d.textContent=r.n;d.dataset.r=r.id;c.appendChild(d)});
   const wr=wnRoom();if(wr)for(let n=1;n<=4;n++){const d=document.createElement('div');d.className='lbl wn';d.textContent=n;d.dataset.wn=n;d.dataset.room=wr.id;c.appendChild(d)}
   for(const [id] of furnMap){const it=itemById(id);if(!it||!(ST.flab||id===selId)||['rug','curtain','mirror','mat'].includes(it.type))continue;const d=document.createElement('div');d.className='lbl f';d.textContent=it.name;d.dataset.f=id;if(id===selId)d.classList.add('sel');c.appendChild(d)}
 }
@@ -719,7 +719,7 @@ function renderTabs(){
     <h4>تلميحات</h4><div class="note">• زرار «👁 أفقي» تحت بيرجّع النظر مستقيم فورًا.<br>• ضغطتين على الأرض بتنقلك هناك.<br>• الخريطة الصغيرة تحت على الشمال بتبيّن مكانك واتجاهك، واضغط عليها علشان تنتقل.<br>• العصا: يمين وشمال بيلفّوا حواليك، وفوق وتحت بيمشّوك (تقدر تغيّرها لمشي جانبي).<br>• ⟲ ⟳ بيلفّوا 90° بضغطة، و🔄 بيلف 360° لوحده.</div>`}
   else if(tab==='walls'){b.innerHTML=`<div class="note">اضغط على أي <b>حيطة</b> أو <b>شباك</b> أو <b>باب</b> في الشقة (من فوق أو وانت ماشي). تقدر تهدمها، تحرّكها، تشيل الشباك أو تضيف فتحة.</div><div id="wBox" style="margin-top:10px"></div><div class="note" style="margin-top:12px">لما تحرّك حيطة بيتغيّر مقاس الغرفتين على جنبيها. وممكن تحتاج بعدها تظبّط الحيطان اللي متصلة بيها. قولّي وأنا أظبطها.</div>`;renderWallPanel()}
   else if(tab==='furn'){
-    const rooms=ROOMS.filter(r=>r.k!=='land');const byRoom=r=>FURN.filter(i=>{const rr=roomAt(i.x,i.z);return rr&&rr.id===r.id&&itemVisible(i)});
+    const rooms=ROOMS.filter(r=>r.k!=='land'&&r.n);const byRoom=r=>FURN.filter(i=>{const rr=roomAt(i.x,i.z);return rr&&rr.id===r.id&&itemVisible(i)});
     b.innerHTML=`<div class="note">اضغط على أي قطعة في الشقة (في المنظور العلوي أو وانت ماشي) أو اختارها من القايمة، وبعدها حرّكها بالأسهم.</div>
     <div class="row"><label for="fsel">اختار قطعة</label><select id="fsel"><option value="">—</option>${rooms.map(r=>{const l=byRoom(r);return l.length?`<optgroup label="${r.n}">${l.map(i=>`<option value="${i.id}" ${i.id===selId?'selected':''}>${esc2(i.name)}</option>`).join('')}</optgroup>`:''}).join('')}</select></div>
     <div id="selInfo" style="margin:8px 0"></div>
@@ -768,7 +768,7 @@ function renderTabs(){
     b.innerHTML=`<h4>أبعاد قابلة للتعديل</h4>${sl('ceil','ارتفاع السقف',P.ceil,2.5,3.6,.05,' م')}${sl('doorH','ارتفاع الأبواب',P.doorH,2.0,2.5,.05,' م')}${sl('sill','ارتفاع حافة الشبابيك',P.sill,.3,1.2,.05,' م')}${sl('doorW','عرض الأبواب',P.doorW,.7,1.2,.05,' م')}${sl('balc','عرض أبواب التراسات',P.balc,1.0,2.4,.1,' م')}
     <div class="note">اللي وصلني منك: السقف 2.70 م، والأبواب 1.0×2.30 م، وأبواب التراسات 1.5 م، وممر 10.3 م طول وحوالي 1.5 م عرض، والمدخل 2×1.9 م. الباقي تقدير. لما تغيّر أي رقم الشقة كلها بتتبني من جديد.</div>
     <h4>أبعاد الغرف الحالية (تقدير من المخطط)</h4>
-    <table><tr><th>الغرفة</th><th>العرض×الطول (م)</th><th>م²</th></tr>${ROOMS.filter(r=>r.k!=='land').map(r=>`<tr><td>${r.n}</td><td>${(r.x1-r.x0).toFixed(2)}×${(r.z1-r.z0).toFixed(2)}</td><td>${((r.x1-r.x0)*(r.z1-r.z0)).toFixed(1)}</td></tr>`).join('')}</table>`;
+    <table><tr><th>الغرفة</th><th>العرض×الطول (م)</th><th>م²</th></tr>${ROOMS.filter(r=>r.k!=='land'&&r.n).map(r=>`<tr><td>${r.n}</td><td>${(r.x1-r.x0).toFixed(2)}×${(r.z1-r.z0).toFixed(2)}</td><td>${((r.x1-r.x0)*(r.z1-r.z0)).toFixed(1)}</td></tr>`).join('')}</table>`;
   }else if(tab==='qty'){
     const A=Q.area,W=Q.wall,sum=ids=>ids.reduce((s,i)=>s+(A[i]||0),0);
     const inner=ROOMS.filter(r=>!['ter','land'].includes(r.k)),ter=ROOMS.filter(r=>r.k==='ter');
@@ -780,7 +780,7 @@ function renderTabs(){
     <table><tr><th>البند</th><th>الكمية</th><th>سعر الوحدة</th><th>الإجمالي</th></tr>${items.map(([n,k,v,u])=>`<tr><td>${n}</td><td>${v.toFixed(u==='عدد'?0:1)} ${u}</td><td><input type="number" inputmode="decimal" min="0" data-p="${k}" value="${PR[k]||''}" placeholder="0"></td><td data-tot="${k}" data-q="${v}">0</td></tr>`).join('')}</table>
     <p class="tot" id="grand"></p>
     <div class="note">مش محسوب: المطبخ والدواليب والعفش والأجهزة والصحي والكهرباء. هنضيفهم لما تحدد المواصفات.</div>
-    <h4>مساحات (م²) حسب الغرفة</h4><table><tr><th>الغرفة</th><th>أرضية</th><th>حيطان</th></tr>${ROOMS.filter(r=>r.k!=='land').map(r=>`<tr><td>${r.n}</td><td>${(A[r.id]||0).toFixed(1)}</td><td>${(W[r.id]||0).toFixed(1)}</td></tr>`).join('')}</table>`;
+    <h4>مساحات (م²) حسب الغرفة</h4><table><tr><th>الغرفة</th><th>أرضية</th><th>حيطان</th></tr>${ROOMS.filter(r=>r.k!=='land'&&r.n).map(r=>`<tr><td>${r.n}</td><td>${(A[r.id]||0).toFixed(1)}</td><td>${(W[r.id]||0).toFixed(1)}</td></tr>`).join('')}</table>`;
     calcTot();
   }else{
     b.innerHTML=`<h4>اللي محتاجه علشان الأبعاد تبقى حقيقية</h4><ol class="need note">

@@ -376,7 +376,7 @@ function patchItem(id,p){const ai=edits.add.find(i=>i.id===id);if(ai)Object.assi
 function refurnish(){furnGrp.children.slice().forEach(c=>furnGrp.remove(c));furnish();renderLabels();highlight()}
 function highlight(){if(boxHelper){scene.remove(boxHelper);boxHelper=null}const g=selId&&furnMap.get(selId);if(g){boxHelper=new T.BoxHelper(g,0xffd166);scene.add(boxHelper)}
   document.querySelectorAll('.lbl.f').forEach(d=>d.classList.toggle('sel',d.dataset.f===selId));updateSelInfo()}
-function selectItem(id){selId=id;highlight()}
+function selectItem(id){selId=id;renderLabels();highlight()}
 const snapAxis=(x,z)=>Math.abs(x)>=Math.abs(z)?[Math.sign(x),0]:[0,Math.sign(z)];
 function viewFwd(){return mode==='walk'?[Math.sin(yaw),-Math.cos(yaw)]:[-Math.sin(orbit.az),-Math.cos(orbit.az)]}
 let stepM=.1;
@@ -552,7 +552,7 @@ $('oTop').onclick=orbitTop;$('oHere').onclick=enterHere;
 function renderLabels(){
   const c=$('labels');c.innerHTML='';
   if(ST.labels)ROOMS.forEach(r=>{if(r.k==='land')return;const d=document.createElement('div');d.className='lbl room';d.textContent=r.n;d.dataset.r=r.id;c.appendChild(d)});
-  if(ST.flab||tab==='furn')for(const [id] of furnMap){const it=itemById(id);if(!it||['rug','curtain','mirror','mat'].includes(it.type))continue;const d=document.createElement('div');d.className='lbl f';d.textContent=it.name;d.dataset.f=id;if(id===selId)d.classList.add('sel');c.appendChild(d)}
+  for(const [id] of furnMap){const it=itemById(id);if(!it||!(ST.flab||id===selId)||['rug','curtain','mirror','mat'].includes(it.type))continue;const d=document.createElement('div');d.className='lbl f';d.textContent=it.name;d.dataset.f=id;if(id===selId)d.classList.add('sel');c.appendChild(d)}
 }
 $('labels').addEventListener('click',e=>{const d=e.target.closest('.lbl');if(!d)return;if(d.dataset.r){if(mode!=='walk')focusRoom(d.dataset.r)}else if(d.dataset.f){selectItem(d.dataset.f);if(typeof openFurnTab==='function')openFurnTab()}});
 const _v=new T.Vector3();
@@ -566,7 +566,7 @@ function updateLabels(){
 
 /* ================= UI panels ================= */
 const TABS=[['furn','العفش'],['design','التصميم'],['light','الإضاءة والوقت'],['dims','الأبعاد'],['qty','الكميات والتكلفة'],['need','محتاجه منك']];
-let tab='furn';
+let tab='design';
 const AREA_MAIN={liv:'معيشة',din:'سفرة'};
 function chips(key,opts,cur,fn){return`<div class="chips">${opts.map(([v,l])=>`<button data-k="${key}" data-v="${v}" class="${String(cur)===String(v)?'on':''}">${l}</button>`).join('')}</div>`}
 function tg(key,label,v){return`<div class="tg"><label for="t_${key}">${label}</label><input type="checkbox" id="t_${key}" data-t="${key}" ${v?'checked':''}></div>`}

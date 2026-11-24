@@ -17,6 +17,8 @@ canvas#c{position:absolute;inset:0;width:100%;height:100%;display:block;outline:
 button:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid var(--amber);outline-offset:2px}
 .dock{position:absolute;left:50%;transform:translateX(-50%);bottom:calc(env(safe-area-inset-bottom,0px) + 10px);display:flex;gap:8px;direction:rtl;z-index:30}
 .dock button{font-size:15px;padding:10px 14px}
+.dock button.warn{background:var(--amber);color:#1a1200;border-color:var(--amber);font-weight:700}
+.dimb{min-width:44px}
 .stick{position:absolute;left:max(18px,env(safe-area-inset-left,0px));bottom:calc(env(safe-area-inset-bottom,0px) + 18px);width:132px;height:132px;border-radius:50%;background:rgba(18,24,33,.45);border:2px solid rgba(255,255,255,.22);touch-action:none}
 .stick i{position:absolute;left:50%;top:50%;width:56px;height:56px;margin:-28px;border-radius:50%;background:rgba(255,255,255,.5)}
 .hud{position:absolute;left:max(12px,env(safe-area-inset-left,0px));top:calc(env(safe-area-inset-top,0px) + 56px);font-size:13px;color:var(--ink);background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:4px 10px;direction:rtl;pointer-events:none;font-variant-numeric:tabular-nums}
@@ -83,6 +85,7 @@ td input{width:90px;font:inherit;color:var(--ink);background:var(--bg);border:1p
     <button id="bLevel">👁 أفقي</button>
     <button id="bMode">منظور علوي</button>
     <button id="bShot">لقطة</button>
+    <button id="bSave">💾 احفظ</button>
     <button id="bOpt" class="on">خيارات</button>
   </div>
   <div class="sheet open" id="sheet">
@@ -307,6 +310,24 @@ function bed(w=1.6,l=2.0,hb=1.0){const g=new T.Group(),f=F();
   sbox(w+.3,hb,.1,0,.0,-l/2-.05,mat(mix(pal().a,'#000000',.1),.8),0,g,.04);return g}
 function nstand(){const g=new T.Group(),f=F();box(.45,.45,.38,0,.05,0,f.wood,0,g);box(.4,.01,.02,0,.35,.19,f.metal,0,g);cyl(.1,.02,0,.5,0,f.metal,g);cyl(.012,.28,0,.52,0,f.metal,g,6);cyl(.1,.15,0,.78,0,glowM('#fff0d0',.7),g);return g}
 function wardrobe(w,d=.6,h){h=h||P.ceil-.15;const g=new T.Group(),f=F();box(w,h,d,0,.05,0,f.cab,0,g);const n=Math.max(2,Math.round(w/.5));for(let i=0;i<n;i++){box(w/n-.02,h-.1,.02,-w/2+(i+.5)*w/n,.1,d/2,mix2(f.cab),0,g);box(.015,.3,.02,-w/2+(i+.5)*w/n+(i%2?-1:1)*w/n*.4,1.0,d/2+.01,f.metal,0,g)}return g}
+function glassWardrobe(w,d=.6,h){h=h||P.ceil-.15;const g=new T.Group(),f=F();
+  const fr=mat('#2a2c30',.4,.6),sh=mat('#efede8',.5),gl=mat('#cfe6ee',.05,0,{transparent:true,opacity:.2,depthWrite:false,side:T.DoubleSide}),led=new T.MeshBasicMaterial({color:0xffe9b8});
+  box(w,.05,d,0,0,0,fr,0,g);box(w,.04,d,0,h-.04+.05,0,fr,0,g);box(w,h,.02,0,.05,-d/2+.01,mat('#3a3d42',.6),0,g);
+  box(.03,h,d,-w/2+.015,.05,0,fr,0,g);box(.03,h,d,w/2-.015,.05,0,fr,0,g);
+  const cols=Math.max(1,Math.round(w/.6)),cw=w/cols;
+  for(let i=1;i<cols;i++)box(.02,h-.06,d-.04,-w/2+i*cw,.07,0,fr,0,g);
+  const lv=[.4,.8,1.2,1.6].filter(y=>y<h-.2);
+  for(let i=0;i<cols;i++){const cx=-w/2+(i+.5)*cw;
+    for(const y of lv)box(cw-.05,.02,d-.08,cx,y,0,sh,0,g);
+    if(i%2===0){box(cw-.08,.015,.015,cx,h-.15,0,f.metal,0,g);for(let k=0;k<4;k++)box(.05,.9,.4,cx-cw*.3+k*cw*.2,h-1.1,0,mat(['#d8d2c6','#8a9aa6','#3d4651','#c9b79c'][(i+k)%4],.9),0,g)}
+    else{for(const y of lv)for(let k=0;k<3;k++)box(cw*.25,.14,.3,cx-cw*.28+k*cw*.28,y+.02,0,mat(['#e7dfd0','#b7b2a8','#7b8a96'][(i+k)%3],.9),0,g)}
+    box(cw-.05,.012,.012,cx,h-.02,d/2-.04,led,0,g);
+    for(const y of lv)box(cw-.07,.008,.02,cx,y-.01,d/2-.05,led,0,g)}
+  box(.012,h-.12,.012,-w/2+.04,.08,d/2-.04,led,0,g);box(.012,h-.12,.012,w/2-.04,.08,d/2-.04,led,0,g);
+  for(let i=0;i<cols;i++){const dm=box(cw-.03,h-.1,.012,-w/2+(i+.5)*cw,.1,d/2,gl,0,g);dm.castShadow=false;box(.012,.35,.02,-w/2+(i+.5)*cw+(i%2?-1:1)*cw*.4,1.0,d/2+.012,f.metal,0,g)}
+  return g}
+function glassPanel(w,h){h=h||P.ceil-.1;const g=new T.Group(),fr=mat('#2a2c30',.4,.6),gl=mat('#cfe6ee',.05,0,{transparent:true,opacity:.22,depthWrite:false,side:T.DoubleSide});
+  const p=box(w,h,.012,0,.04,0,gl,0,g);p.castShadow=false;box(w,.03,.04,0,.02,0,fr,0,g);box(w,.03,.04,0,h+.04-.03,0,fr,0,g);box(.03,h,.04,-w/2+.015,.04,0,fr,0,g);box(.03,h,.04,w/2-.015,.04,0,fr,0,g);return g}
 const mix2=m=>mat(mix('#' + m.color.getHexString(),'#ffffff',.08),.5);
 function desk(w=1.5,d=.7){const g=new T.Group(),f=F();box(w,.04,d,0,.72,0,f.wood,0,g);for(const s of[-1,1])box(.04,.72,d-.1,s*(w/2-.05),0,0,f.metal,0,g);box(.5,.3,.02,0,.76,-.2,f.dark,0,g);box(.5,.34,.02,0,1.0,-.22,f.dark,0,g);return g}
 function plant(h=1.1,s=1){const g=new T.Group(),f=F();
@@ -343,7 +364,7 @@ const mirrorM=()=>mat('#e4eef3',.08,0,{emissive:'#7f93a1',emissiveIntensity:.45}
 const BUILD={
  sofa:a=>sofa(a.w||2.2,a.d||.95),armchair:()=>armchair(),ctable:a=>ctable(a.w||1.1,a.d||.65,a.h||.4),tvUnit:a=>tvUnit(a.w||2),rug:a=>rug(a.w||2,a.d||1.5),
  chair:()=>chair(),dtable:a=>dtable(a.w||2.4,a.d||1,!!a.round),chandelier:()=>chandelier(),bed:a=>bed(a.w||1.6,a.l||2,a.hb||1),nstand:()=>nstand(),
- wardrobe:a=>wardrobe(a.w||2,a.d||.6,a.h),desk:a=>desk(a.w||1.5,a.d||.7),plant:a=>plant(a.h||1.1,a.s||1),flamp:()=>flamp(),
+ wardrobe:a=>wardrobe(a.w||2,a.d||.6,a.h),glasswardrobe:a=>glassWardrobe(a.w||2.4,a.d||.6,a.h),glasspanel:a=>glassPanel(a.w||1.5,a.h),desk:a=>desk(a.w||1.5,a.d||.7),plant:a=>plant(a.h||1.1,a.s||1),flamp:()=>flamp(),
  curtain:a=>curtain(a.w||1.6,0,0,!!a.vert),toilet:()=>toilet(),vanity:a=>vanity(a.w||.9),shower:a=>shower(a.w||.9,a.d||.9),
  mirror:a=>{const g=new T.Group();box(a.t||.04,a.h||1.9,a.w||.8,0,a.y==null?.05:a.y,0,mirrorM(),0,g);return g},
  boxitem:a=>{const g=new T.Group(),f=F();box(a.w||1,a.h||.5,a.d||.5,0,0,0,f[a.mat||'wood']||f.wood,0,g);return g},
@@ -356,9 +377,9 @@ const BUILD={
  tbl:()=>{const g=new T.Group(),f=F();cyl(.35,.04,0,.7,0,f.metal,g);cyl(.02,.7,0,0,0,f.metal,g,6);return g},
  mat:()=>{const g=new T.Group();box(.9,.015,.6,0,0,0,mat('#5b4a3a',1),0,g);return g},
 };
-const TYPE_NAMES={sofa:'كنبة',armchair:'فوتيل',ctable:'ترابيزة',tvUnit:'وحدة تلفزيون',rug:'سجادة',chair:'كرسي',dtable:'ترابيزة سفرة',chandelier:'نجفة',bed:'سرير',nstand:'كومودينو',wardrobe:'دولاب',desk:'مكتب',plant:'نبتة',flamp:'أباجورة'};
-const ADDABLE=['sofa','armchair','ctable','bed','wardrobe','desk','chair','dtable','plant','flamp','rug','tvUnit','nstand','chandelier'];
-const ADD_ARGS={sofa:{w:2.2},ctable:{w:1,d:.6},bed:{w:1.6,l:2},wardrobe:{w:2},desk:{w:1.4,d:.7},dtable:{w:2,d:.9},plant:{h:1.2},rug:{w:2,d:1.4},tvUnit:{w:1.6}};
+const TYPE_NAMES={sofa:'كنبة',armchair:'فوتيل',ctable:'ترابيزة',tvUnit:'وحدة تلفزيون',rug:'سجادة',chair:'كرسي',dtable:'ترابيزة سفرة',chandelier:'نجفة',bed:'سرير',nstand:'كومودينو',wardrobe:'دولاب',glasswardrobe:'دولاب زجاج مضيء',glasspanel:'حاجز زجاج',desk:'مكتب',plant:'نبتة',flamp:'أباجورة'};
+const ADDABLE=['sofa','armchair','ctable','bed','wardrobe','glasswardrobe','glasspanel','desk','chair','dtable','plant','flamp','rug','tvUnit','nstand','chandelier'];
+const ADD_ARGS={sofa:{w:2.2},ctable:{w:1,d:.6},bed:{w:1.6,l:2},wardrobe:{w:2},glasswardrobe:{w:2.4},glasspanel:{w:1.5},desk:{w:1.4,d:.7},dtable:{w:2,d:.9},plant:{h:1.2},rug:{w:2,d:1.4},tvUnit:{w:1.6}};
 function frontArrow(g){
   const bb=new T.Box3().setFromObject(g),m=new T.MeshBasicMaterial({color:'#ffcc00',depthTest:false,transparent:true,opacity:.95});
   const c=new T.Mesh(new T.ConeGeometry(.1,.3,12),m);c.rotation.x=Math.PI/2;c.position.set((bb.min.x+bb.max.x)/2,.04,bb.max.z+.22);c.renderOrder=20;g.add(c);
@@ -374,12 +395,13 @@ function furnish(){
     place(g,it.x,it.z,it.ry||0);furnMap.set(it.id,g)}
 }
 /* ----- edits: stored locally, shareable by link ----- */
-let edits={mod:{},del:[],add:[],w:[]};
+const E0=()=>({mod:{},del:[],add:[],w:[],r:{}});
+let edits=E0();
 const EKEY=()=>'prop:'+APT+':edits';
 function loadEdits(){
-  try{const e=JSON.parse(localStorage.getItem(EKEY())||'null');if(e)edits=Object.assign({mod:{},del:[],add:[],w:[]},e)}catch(x){}
-  const m=(location.hash||'').match(/e=([^&]+)/);if(m){try{edits=Object.assign({mod:{},del:[],add:[],w:[]},JSON.parse(decodeURIComponent(escape(atob(m[1])))));saveEdits()}catch(x){}}}
-function saveEdits(){try{localStorage.setItem(EKEY(),JSON.stringify(edits))}catch(x){}}
+  try{const e=JSON.parse(localStorage.getItem(EKEY())||'null');if(e)edits=Object.assign(E0(),e)}catch(x){}
+  const m=(location.hash||'').match(/e=([^&]+)/);if(m){try{edits=Object.assign(E0(),JSON.parse(decodeURIComponent(escape(atob(m[1])))));saveEdits();try{history.replaceState(null,'',location.pathname+location.search)}catch(x){}}catch(x){}}}
+function saveEdits(){try{localStorage.setItem(EKEY(),JSON.stringify(edits))}catch(x){}try{updateSaveBtn()}catch(x){}}
 function deriveGeometry(){
   const walls=JSON.parse(JSON.stringify(MODEL.walls)),rooms=JSON.parse(JSON.stringify(MODEL.rooms));
   walls.forEach(w=>(w.op||[]).forEach((o,i)=>{if(!o.id)o.id=w.id+':'+i}));
@@ -395,6 +417,7 @@ function deriveGeometry(){
       for(const w2 of walls){if(w2===w||w2.ax===w.ax||w2.removed)continue;if(w2.p>w.a+.1&&w2.p<w.b+.05){for(const k of['a','b'])if(Math.abs(w2[k]-old)<.3)w2[k]=+(w2[k]+d).toFixed(3)}}
       w.p=+(w.p+d).toFixed(3)}
   }
+  for(const id in (edits.r||{})){const r=rooms.find(x=>x.id===id);if(r)Object.assign(r,edits.r[id])}
   ROOMS=rooms;RM=Object.fromEntries(ROOMS.map(r=>[r.id,r]));WALLS=walls}
 function applyEdits(){deriveGeometry();FURN=MODEL.furniture.filter(i=>!edits.del.includes(i.id)).map(i=>Object.assign({},i,edits.mod[i.id]||{})).concat(edits.add.map(i=>Object.assign({},i)))}
 const itemById=id=>FURN.find(i=>i.id===id);
@@ -412,13 +435,52 @@ function rotItem(d){const it=selId&&itemById(selId);if(!it)return;patchItem(selI
 function delItem(){const it=selId&&itemById(selId);if(!it)return;const ai=edits.add.findIndex(i=>i.id===selId);if(ai>=0)edits.add.splice(ai,1);else edits.del.push(selId);saveEdits();applyEdits();selId=null;refurnish()}
 function dupItem(){const it=selId&&itemById(selId);if(!it)return;const n=Object.assign({},it,{id:it.id+'-c'+(Date.now()%100000),name:it.name+' (نسخة)',x:+(it.x+.4).toFixed(3),z:+(it.z+.4).toFixed(3),when:undefined});edits.add.push(n);saveEdits();applyEdits();selId=n.id;refurnish()}
 function resetItem(){if(!selId)return;delete edits.mod[selId];saveEdits();applyEdits();refurnish()}
-function resetAll(){edits={mod:{},del:[],add:[],w:[]};saveEdits();applyEdits();selId=null;selWall=null;selOp=null;rebuild();renderTabs()}
+function resetAll(){edits=E0();saveEdits();applyEdits();selId=null;selWall=null;selOp=null;rebuild();renderTabs()}
 function addItem(type){const [fx,fz]=viewFwd();const bx=mode==='walk'?pos.x+fx*1.8:orbit.t.x,bz=mode==='walk'?pos.z+fz*1.8:orbit.t.z;
   const it={id:'new-'+type+'-'+(Date.now()%100000),name:(TYPE_NAMES[type]||type)+' (جديد)',type,x:+bx.toFixed(2),z:+bz.toFixed(2),ry:+(Math.round(Math.atan2(-fx,-fz)/(Math.PI/2))*Math.PI/2).toFixed(4),args:Object.assign({},ADD_ARGS[type]||{})};
   edits.add.push(it);saveEdits();applyEdits();selId=it.id;refurnish()}
 function roomName(x,z){const r=roomAt(x,z);return r?r.n:'برّه'}
 function updateSelInfo(){const el=document.getElementById('selInfo');if(!el)return;const it=selId&&itemById(selId);
-  el.innerHTML=it?`<b>${esc2(it.name)}</b><br><span class="note">${roomName(it.x,it.z)} • X ${it.x.toFixed(2)} • Z ${it.z.toFixed(2)} • زاوية ${Math.round(((it.ry||0)*180/Math.PI+360)%360)}°</span>`:'<span class="note">اضغط على أي قطعة عفش في الشقة، أو اختارها من القايمة.</span>'}
+  el.innerHTML=it?`<b>${esc2(it.name)}</b><br><span class="note">${roomName(it.x,it.z)} • X ${it.x.toFixed(2)} • Z ${it.z.toFixed(2)} • زاوية ${Math.round(((it.ry||0)*180/Math.PI+360)%360)}°</span>`:'<span class="note">اضغط على أي قطعة عفش في الشقة، أو اختارها من القايمة.</span>';updateDims()}
+const DIMS={wardrobe:[['w','العرض',2],['d','العمق',.6],['h','الارتفاع',2.55]],glasswardrobe:[['w','العرض',2.4],['d','العمق',.6],['h','الارتفاع',2.55]],glasspanel:[['w','العرض',1.5],['h','الارتفاع',2.6]],sofa:[['w','العرض',2.2],['d','العمق',.95]],tvUnit:[['w','العرض',2]],desk:[['w','العرض',1.5],['d','العمق',.7]],dtable:[['w','العرض',2.4],['d','العمق',1]],ctable:[['w','العرض',1.1],['d','العمق',.65]],rug:[['w','العرض',2],['d','العمق',1.5]],bed:[['w','العرض',1.6],['l','الطول',2]],mirror:[['w','العرض',.8],['h','الارتفاع',1.9]],vanity:[['w','العرض',.9]],shower:[['w','العرض',.9],['d','العمق',.9]],curtain:[['w','العرض',1.6]],boxitem:[['w','العرض',1],['d','العمق',.5],['h','الارتفاع',.8]]};
+function updateDims(){const el=document.getElementById('dimBox');if(!el)return;const it=selId&&itemById(selId),D=it&&DIMS[it.type];
+  if(!D){el.innerHTML='';return}
+  const a=it.args||{};
+  el.innerHTML='<h4>الأبعاد (متر)</h4>'+D.map(([k,l,def])=>{const v=a[k]!=null?a[k]:def;return `<div class="row"><label>${l}</label><span style="display:flex;gap:6px;align-items:center"><button data-dim="${k}:-.1" class="dimb">−10</button><button data-dim="${k}:-.01" class="dimb">−1</button><b style="min-width:46px;text-align:center">${(+v).toFixed(2)}</b><button data-dim="${k}:.01" class="dimb">+1</button><button data-dim="${k}:.1" class="dimb">+10</button></span></div>`}).join('')+'<div class="note">الأرقام بالسنتيمتر (−10 يعني ناقص 10 سم).</div>'}
+function dimStep(k,dv){const it=selId&&itemById(selId);if(!it)return;const D=(DIMS[it.type]||[]).find(x=>x[0]===k);if(!D)return;
+  const cur=it.args&&it.args[k]!=null?it.args[k]:D[2];patchItem(selId,{args:Object.assign({},it.args||{},{[k]:+Math.max(.1,cur+dv).toFixed(3)})});refurnish();updateDims()}
+function fitWall(n){const it0=selId&&itemById(selId);if(!it0)return;const r=roomAt(it0.x,it0.z);if(!r){toast('القطعة مش جوه غرفة');return}
+  if(!n){const d=[it0.z-r.z0,r.x1-it0.x,r.z1-it0.z,it0.x-r.x0];n=d.indexOf(Math.min(...d))+1}
+  moveToRoomWall(n);const it=itemById(selId),hor=n===1||n===3,lo=hor?r.x0:r.z0,hi=hor?r.x1:r.z1,fixed=n===1?r.z0:n===3?r.z1:n===2?r.x1:r.x0;
+  const bl=[];for(const w of WALLS){if(w.removed||(hor?w.ax!=='h':w.ax!=='v'))continue;if(Math.abs(w.p-fixed)>w.t/2+.2)continue;
+    (w.op||[]).forEach(o=>{if(o.ty==='win'&&(o.sill||0)>1.2)return;const ww=o.w||1;bl.push([o.c-ww/2-.04,o.c+ww/2+.04])})}
+  bl.sort((a,b)=>a[0]-b[0]);const fr=[];let cur=lo;for(const [a,b] of bl){if(b<=cur)continue;if(a>cur)fr.push([cur,Math.min(a,hi)]);cur=Math.max(cur,b)}if(cur<hi)fr.push([cur,hi]);
+  const pos=hor?it.x:it.z;let best=fr.find(f=>pos>=f[0]&&pos<=f[1])||fr.slice().sort((a,b)=>(b[1]-b[0])-(a[1]-a[0]))[0];
+  if(!best||best[1]-best[0]<.3){toast('مفيش مساحة فاضية كفاية على الجدار ده');return}
+  const span=+(best[1]-best[0]-.02).toFixed(2),mid=+((best[0]+best[1])/2).toFixed(3);
+  patchItem(selId,Object.assign({args:Object.assign({},it.args||{},{w:span})},hor?{x:mid}:{z:mid}));refurnish();updateDims();
+  toast('اتظبط على عرض الجدار '+n+': '+(span*100).toFixed(0)+' سم'+(bl.length?' (من غير الشبابيك والأبواب)':''))}
+const KINDS=[['liv','معيشة'],['din','سفرة'],['kit','مطبخ'],['wet','حمّام'],['bed','غرفة نوم'],['dr','دريسنج'],['cor','ممر'],['foy','مدخل']];
+let rsel='';
+function setRoom(id,p){edits.r=edits.r||{};edits.r[id]=Object.assign({},edits.r[id]||{},p);saveEdits();applyEdits();rebuild();renderTabs()}
+function roomPanel(){const rs=ROOMS.filter(r=>r.k!=='ter'&&r.k!=='land');if(!rsel||!RM[rsel])rsel=(rs.find(r=>r.id==='bC')||rs[0]).id;const r=RM[rsel];
+  const sides=[['x0','الشمال (س4)'],['x1','اليمين (س2)'],['z0','فوق (س1)'],['z1','تحت (س3)']];
+  return `<div class="note">غيّر نوع الغرفة (علشان الأرضية تتغيّر)، سمّيها، ووسّع حدودها. لما تهدم حيطة وتوسّع الغرفة، الأرضية بتتمد لوحدها.</div>
+  <div class="row"><label for="rsel">الغرفة</label><select id="rsel">${rs.map(x=>`<option value="${x.id}" ${x.id===rsel?'selected':''}>${esc2(x.n||x.id)}</option>`).join('')}</select></div>
+  <div class="row"><label for="rname">الاسم</label><input id="rname" value="${esc2(r.n||'')}" style="flex:2 1 160px;font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:7px"></div>
+  <h4>النوع</h4><div class="chips">${KINDS.map(([k,l])=>`<button data-rk="${k}" class="${r.k===k?'on':''}">${l}</button>`).join('')}</div>
+  <div class="chips" style="margin-top:6px"><button data-rk2="bath2dr">حوّل الحمّام لدريسنج (يشيل الحمّام ويفرغه)</button></div>
+  <h4>حدود الغرفة</h4>${sides.map(([k,l])=>`<div class="row"><label>${l}</label><span style="display:flex;gap:6px;align-items:center"><button data-rm="${k}:-.1" class="dimb">−10</button><b style="min-width:58px;text-align:center">${r[k].toFixed(2)}</b><button data-rm="${k}:.1" class="dimb">+10</button></span></div>`).join('')}
+  <div class="note">${(r.x1-r.x0).toFixed(2)} × ${(r.z1-r.z0).toFixed(2)} م = ${((r.x1-r.x0)*(r.z1-r.z0)).toFixed(1)} م²</div>
+  <div class="chips"><button data-rk2="clear">شيل عفش الغرفة دي</button><button data-rk2="undo">ارجع الغرفة زي ما كانت</button></div>`}
+function setRoomName(id,v){edits.r=edits.r||{};edits.r[id]=Object.assign({},edits.r[id]||{},{n:v});saveEdits();applyEdits();renderLabels()}
+function roomAct(b){const r=RM[rsel];if(!r)return;
+  if(b.dataset.rk){setRoom(rsel,{k:b.dataset.rk});return}
+  if(b.dataset.rm){const [k,v]=b.dataset.rm.split(':');setRoom(rsel,{[k]:+(r[k]+ +v).toFixed(3)});return}
+  const a=b.dataset.rk2;
+  if(a==='bath2dr'){FURN.filter(i=>{const q=roomAt(i.x,i.z);return q&&q.id===rsel}).forEach(i=>{const ai=edits.add.findIndex(x=>x.id===i.id);if(ai>=0)edits.add.splice(ai,1);else if(!edits.del.includes(i.id))edits.del.push(i.id)});setRoom(rsel,{k:'dr',n:'دريسنج الماستر'});applyEdits();refurnish();toast('الحمّام بقى دريسنج. اهدم الحيطة اللي بينه وبين الدريسنج من تبويب الحيطان، وضيف دواليب زجاج من تبويب العفش');return}
+  if(a==='clear'){FURN.filter(i=>{const q=roomAt(i.x,i.z);return q&&q.id===rsel}).forEach(i=>{const ai=edits.add.findIndex(x=>x.id===i.id);if(ai>=0)edits.add.splice(ai,1);else if(!edits.del.includes(i.id))edits.del.push(i.id)});saveEdits();applyEdits();refurnish();toast('اتشال العفش');return}
+  if(a==='undo'){delete edits.r[rsel];saveEdits();applyEdits();rebuild();renderTabs()}}
 const esc2=s=>String(s).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
 function editsText(){const L=[];for(const id in edits.mod){const b=MODEL.furniture.find(i=>i.id===id),m=edits.mod[id];if(b&&!edits.del.includes(id))L.push(`- ${b.name} (${id}): X ${(m.x??b.x).toFixed?.(2)||m.x}, Z ${(m.z??b.z).toFixed?.(2)||m.z}, زاوية ${Math.round((((m.ry??b.ry)||0)*180/Math.PI+360)%360)}°`)}
   edits.del.forEach(id=>{const b=MODEL.furniture.find(i=>i.id===id);L.push(`- اتشال: ${b?b.name:id} (${id})`)});
@@ -576,25 +638,79 @@ function bakedModel(){
   m.rooms=ROOMS.map(r=>({id:r.id,n:r.n,k:r.k,x0:r.x0,x1:r.x1,z0:r.z0,z1:r.z1}));
   return m}
 function syncMsg(t,ok){const el=document.getElementById('syncMsg');if(el){el.textContent=t;el.style.color=ok===false?'var(--bad)':ok?'var(--accent)':''}}
-function adoptModel(m){edits={mod:{},del:[],add:[],w:[]};saveEdits();selId=null;selWall=null;selOp=null;applyModel(m);rebuild();wallHL();renderTabs();renderLabels()}
+const E0keys=()=>edits.add.length||edits.del.length||Object.keys(edits.mod).length||(edits.w||[]).length||Object.keys(edits.r||{}).length;
+let baseSha=(()=>{try{return localStorage.getItem('prop:'+APT+':sha')||''}catch(e){return ''}})(),saving=false,forceNext=false,lastBackup=+(()=>{try{return localStorage.getItem('prop:'+APT+':bk')||0}catch(e){return 0}})(),syncState='';
+function setBase(s2){baseSha=s2;try{localStorage.setItem('prop:'+APT+':sha',s2)}catch(e){}}
+const hasEdits=()=>!!(E0keys()||forceNext);
+function deviceName(){let d='';try{d=localStorage.getItem('prop:device')||''}catch(e){}if(d)return d;const u=navigator.userAgent;return /iPhone/.test(u)?'iPhone':/iPad/.test(u)?'iPad':/Android/.test(u)?'Android':/Mac/.test(u)?'Mac':/Windows/.test(u)?'Windows':'جهاز'}
+function updateSaveBtn(){const b=document.getElementById('bSave');if(!b)return;
+  const st=saving?'saving':(hasEdits()?'dirty':(lastBackup?'ok':''));
+  b.textContent=st==='saving'?'⏳ بيحفظ…':st==='dirty'?'💾 احفظ ●':st==='ok'?'✔ محفوظ #'+lastBackup:'💾 احفظ';b.classList.toggle('warn',st==='dirty')}
+const GHK=()=>{try{return (localStorage.getItem('prop:ghtoken')||'').trim()}catch(e){return ''}};
+const GH_H=()=>{const h={Accept:'application/vnd.github+json'};if(GHK())h.Authorization='Bearer '+GHK();return h};
+const apiUrl=p=>'https://api.github.com/repos/'+GH.owner+'/'+GH.repo+'/contents/'+p;
+const b64=x=>btoa(unescape(encodeURIComponent(x))),unb64=x=>decodeURIComponent(escape(atob(x.replace(/\s/g,''))));
+async function httpErr(r){let t='';try{t=(await r.text()).slice(0,100)}catch(e){}return new Error(r.status===401||r.status===403?'المفتاح غلط أو ملوش صلاحية (HTTP '+r.status+')':r.status===404?'الملف أو المستودع مش موجود (404)':'HTTP '+r.status+' '+t)}
+async function ghGet(path){const r=await fetch(apiUrl(path)+'?ref='+GH.branch+'&t='+Date.now(),{headers:GH_H()});if(r.status===404)return null;if(!r.ok)throw await httpErr(r);
+  const j=await r.json();let txt;if(j.content)txt=unb64(j.content);else{const r2=await fetch(apiUrl(path)+'?ref='+GH.branch+'&t='+Date.now(),{headers:Object.assign(GH_H(),{Accept:'application/vnd.github.raw'})});txt=await r2.text()}
+  return{sha:j.sha,json:JSON.parse(txt)}}
+const ghPut=(path,obj,sha,msg)=>fetch(apiUrl(path),{method:'PUT',headers:Object.assign({'Content-Type':'application/json'},GH_H()),body:JSON.stringify(Object.assign({message:msg,content:b64(JSON.stringify(obj,null,1)),branch:GH.branch},sha?{sha}:{}))});
+function refreshAll(){selId=null;selWall=null;selOp=null;rebuild();wallHL();renderTabs();renderLabels();updateSaveBtn()}
+function adoptModel(m){edits=E0();saveEdits();forceNext=false;applyModel(m);refreshAll()}
 async function syncPull(){
   syncMsg('بحمّل آخر نسخة من المستودع…');
-  try{const r=await fetch(ghUrl()+'?ref='+GH.branch+'&t='+Date.now(),{headers:{Accept:'application/vnd.github.raw'}});if(!r.ok)throw new Error('HTTP '+r.status);
-    const m=await r.json();adoptModel(m);syncMsg('اتحدّث من المستودع. تعديلاتك المحلية اتمسحت لأنها بقت جزء من النسخة.',true)}
+  try{const cur=await ghGet(ghPath());if(!cur)throw new Error('الملف مش موجود');setBase(cur.sha);adoptModel(cur.json);syncMsg('اتحدّث من المستودع. تعديلاتك المحلية اتمسحت لأنها بقت جزء من النسخة.',true)}
   catch(e){syncMsg('معرفتش أجيب النسخة: '+e.message+(window.MODEL_INLINE?' (النسخة دي مقفولة على النت، استخدم صفحة GitHub)':''),false)}}
-async function syncSave(){
-  const tok=(localStorage.getItem('prop:ghtoken')||'').trim();
-  if(!tok){syncMsg('اكتب مفتاح GitHub الأول.',false);return}
-  syncMsg('بحفظ في المستودع…');
+async function writeBackup(m,note){
+  const logPath='apartments/'+APT+'/backups/log.json';let skip=0,n=0;
   try{
-    const m=bakedModel(),h={Authorization:'Bearer '+tok,Accept:'application/vnd.github+json'};
-    const g=await fetch(ghUrl()+'?ref='+GH.branch+'&t='+Date.now(),{headers:h});if(!g.ok)throw new Error(g.status===401||g.status===403?'المفتاح غلط أو ملوش صلاحية على المستودع (HTTP '+g.status+')':g.status===404?'الملف أو المستودع مش موجود (404)':'HTTP '+g.status);
-    const cur=await g.json();
-    const body={message:'Update '+APT+' from the viewer',content:btoa(unescape(encodeURIComponent(JSON.stringify(m,null,1)))),sha:cur.sha,branch:GH.branch};
-    const r=await fetch(ghUrl(),{method:'PUT',headers:Object.assign({'Content-Type':'application/json'},h),body:JSON.stringify(body)});
-    if(!r.ok){const t=await r.text();throw new Error(r.status===409?'فيه تعديل أحدث على المستودع، دوس «حدّث من المستودع» الأول (409)':r.status===401||r.status===403?'المفتاح ملوش صلاحية كتابة (HTTP '+r.status+')':'HTTP '+r.status+' '+t.slice(0,120))}
-    adoptModel(m);syncMsg('اتحفظ في المستودع ✔ الموقع بيتحدّث لكل الأجهزة بعد دقيقة أو اتنين.',true)}
-  catch(e){syncMsg('معرفتش أحفظ: '+e.message+(window.MODEL_INLINE?' (نسخة Claude مقفولة على النت، الحفظ بيشتغل من صفحة GitHub بس)':''),false)}}
+    for(let i=0;i<4;i++){
+      const lg=await ghGet(logPath),log=lg?lg.json:{last:0,items:[]};n=(log.last||0)+1+skip;
+      const r1=await ghPut('apartments/'+APT+'/backups/'+String(n).padStart(4,'0')+'.json',m,null,'Backup #'+n);
+      if(r1.status===422){skip++;continue}if(!r1.ok)throw await httpErr(r1);
+      for(let j=0;j<3;j++){
+        const lg2=j?await ghGet(logPath):lg,lg3=lg2?lg2.json:{last:0,items:[]};lg3.last=Math.max(lg3.last||0,n);lg3.items=(lg3.items||[]).filter(x=>x.n!==n).concat([{n,t:new Date().toISOString(),by:deviceName(),note:note||''}]).slice(-300);
+        const r2=await ghPut(logPath,lg3,lg2&&lg2.sha,'Backup log #'+n);if(r2.ok)return n;if(r2.status!==409&&r2.status!==422)throw await httpErr(r2)}
+      return n}
+  }catch(e){console.warn('backup failed',e&&e.message);return -1}
+  return n||-1}
+async function syncSave(note){
+  if(saving)return;
+  if(window.MODEL_INLINE){toast('نسخة Claude مقفولة على النت. الحفظ بيشتغل من صفحة GitHub.');return}
+  if(!GHK()){tab='sync';renderTabs();sheetOpen&&sheetOpen(true);syncMsg('اكتب مفتاح GitHub الأول (مرة واحدة) وبعدها دوس احفظ.',false);toast('محتاج مفتاح GitHub (مرة واحدة) — تبويب المزامنة');return}
+  saving=true;updateSaveBtn();syncMsg('بحفظ…');
+  try{
+    let ok=false;
+    for(let a=0;a<3&&!ok;a++){
+      const cur=await ghGet(ghPath());
+      if(cur&&cur.sha!==baseSha&&!forceNext){applyModel(cur.json);setBase(cur.sha);refreshAll();toast('لقيت تعديلات جديدة من جهاز تاني ودمجتها مع تعديلاتك')}
+      const m=bakedModel(),r=await ghPut(ghPath(),m,cur&&cur.sha,'Save '+APT+' from '+deviceName());
+      if(r.status===409||r.status===422)continue;if(!r.ok)throw await httpErr(r);
+      const res=await r.json();setBase(res.content.sha);
+      const n=await writeBackup(m,note);if(n>0){lastBackup=n;try{localStorage.setItem('prop:'+APT+':bk',n)}catch(e){}}
+      adoptModel(m);ok=true;
+      const msg=n>0?'اتحفظ ✔ نسخة احتياطية رقم '+n+' على GitHub':'اتحفظ ✔ (النسخة الاحتياطية ما اتعملتش، جرّب تاني)';syncMsg(msg,n>0);toast(msg)}
+    if(!ok)throw new Error('فيه جهاز بيحفظ في نفس اللحظة، دوس احفظ تاني')
+  }catch(e){syncMsg('معرفتش أحفظ: '+e.message,false);toast('معرفتش أحفظ: '+e.message)}
+  finally{saving=false;updateSaveBtn()}}
+async function syncPoll(){
+  if(saving||document.hidden||window.MODEL_INLINE)return;
+  try{const cur=await ghGet(ghPath());if(!cur)return;
+    if(cur.sha===baseSha)return;
+    const first=!baseSha;setBase(cur.sha);applyModel(cur.json);refreshAll();if(!first)toast('اتحدّث بتعديلات حفظها جهاز تاني'+(E0keys()?' (تعديلاتك لسه محفوظة فوقها، دوس احفظ)':''))}
+  catch(e){}}
+async function listBackups(){
+  const box=document.getElementById('bkList');if(!box)return;box.textContent='بحمّل…';
+  try{const lg=await ghGet('apartments/'+APT+'/backups/log.json');const it=lg?lg.json.items.slice().reverse():[];
+    box.innerHTML=it.length?it.slice(0,30).map(x=>`<div class="row"><span>#${x.n} • ${new Date(x.t).toLocaleString('ar-EG')} • ${esc2(x.by||'')}${x.note?' • '+esc2(x.note):''}</span><button data-bk="${x.n}">ارجع لها</button></div>`).join(''):'مفيش نسخ احتياطية لسه.'}
+  catch(e){box.textContent='معرفتش أجيب القايمة: '+e.message}}
+async function restoreBackup(n){
+  syncMsg('بجيب النسخة #'+n+'…');
+  try{const r=await ghGet('apartments/'+APT+'/backups/'+String(n).padStart(4,'0')+'.json');if(!r)throw new Error('النسخة مش موجودة');
+    edits=E0();saveEdits();applyModel(r.json);forceNext=true;refreshAll();syncMsg('رجّعت النسخة #'+n+'. دوس «احفظ» علشان تتثبّت على كل الأجهزة.',true);toast('رجّعت النسخة #'+n+' — دوس احفظ')}
+  catch(e){syncMsg('معرفتش أرجّع: '+e.message,false)}}
+setInterval(()=>{if(GHK()||!hasEdits())syncPoll()},GHK()?45000:120000);
+document.addEventListener('visibilitychange',()=>{if(!document.hidden)syncPoll()});
 /* ===== room walls 1-4 (1 top, 2 right, 3 bottom, 4 left on the plan) ===== */
 const WN_NAMES={1:'فوق',2:'يمين',3:'تحت',4:'شمال'};
 const clampN=(v,a,b)=>a>b?(a+b)/2:Math.max(a,Math.min(b,v));
@@ -617,14 +733,14 @@ function snapItemToWall(it,b){b=b||wallFacing(it.x,it.z);if(!b)return null;const
   const bb=new T.Box3().setFromObject(fn(it.args||{}));const back=-bb.min.z+.02,face=w.p+s*w.t/2+s*back;
   const along=Math.max(w.a+.1,Math.min(w.b-.1,b.along));
   return{x:+(vert?face:along).toFixed(3),z:+(vert?along:face).toFixed(3),ry:+(vert?Math.atan2(s,0):Math.atan2(0,s)).toFixed(4)}}
-const WALL_ITEMS=[['tvUnit','تلفزيون',{w:1.8}],['wardrobe','مكتبة',{w:2,d:.4,h:2.2}],['wardrobe','دولاب',{w:2.4,d:.6}],['sofa','كنبة',{w:2.2}],['boxitem','كونسول',{w:1.2,h:.8,d:.35,mat:'wood'}],['nstand','كومودينو',{}],['mirror','مراية',{t:.04,h:1.7,w:.9,y:.2}],['desk','مكتب',{w:1.4,d:.7}],['bed','سرير (راسه على الحيطة)',{w:1.6,l:2}]];
+const WALL_ITEMS=[['tvUnit','تلفزيون',{w:1.8}],['wardrobe','مكتبة',{w:2,d:.4,h:2.2}],['wardrobe','دولاب',{w:2.4,d:.6}],['glasswardrobe','دولاب زجاج مضيء',{w:2.4,d:.6}],['glasspanel','حاجز زجاج',{w:1.5}],['sofa','كنبة',{w:2.2}],['boxitem','كونسول',{w:1.2,h:.8,d:.35,mat:'wood'}],['nstand','كومودينو',{}],['mirror','مراية',{t:.04,h:1.7,w:.9,y:.2}],['desk','مكتب',{w:1.4,d:.7}],['bed','سرير (راسه على الحيطة)',{w:1.6,l:2}]];
 let wSide=0;
 function defaultSide(w){const sd=wallSides(w);if(wSide)return wSide;if(mode==='walk')return((w.ax==='v'?pos.x:pos.z)>=w.p)?1:-1;return sd.P?1:-1}
 function putOnWall(idx){const w=selWall&&WALLS.find(q=>q.id===selWall);if(!w)return;const [type,name,args]=WALL_ITEMS[idx],vert=w.ax==='v';
   const c=lastHit&&lastHit.wid===w.id?lastHit.c:(w.a+w.b)/2;
   const it={id:'new-'+type+'-'+(Date.now()%100000),name:name+' (جديد)',type,x:0,z:0,ry:0,args:Object.assign({},args)};
   const p=snapItemToWall(it,{w,s:defaultSide(w),along:c,d:0});if(!p)return;Object.assign(it,p);
-  edits.add.push(it);saveEdits();applyEdits();selWall=null;selOp=null;wallHL();selId=it.id;refurnish();openFurnTab()}
+  edits.add.push(it);saveEdits();applyEdits();selWall=null;selOp=null;wallHL();selId=it.id;refurnish();openFurnTab();if(type==='glasswardrobe'||type==='wardrobe'&&name==='دولاب')try{fitWall(0)}catch(e){}}
 function wallOp(op){edits.w.push(op);saveEdits();applyEdits();rebuild();wallHL();renderWallPanel()}
 function selectWallHit(x,y){setRay(x,y);const hits=ray.intersectObjects(wallGrp.children,true).filter(h=>h.object.isMesh&&h.object!==wHL);
   for(const h of hits){let o=h.object;while(o&&!(o.userData&&(o.userData.oid||o.userData.wid)))o=o.parent;if(!o)continue;
@@ -730,7 +846,7 @@ function updateLabels(){
 }
 
 /* ================= UI panels ================= */
-const TABS=[['sync','المزامنة'],['furn','العفش'],['walls','الحيطان والفتحات'],['ctrl','التحكم والأداء'],['design','التصميم'],['light','الإضاءة والوقت'],['dims','الأبعاد'],['qty','الكميات والتكلفة'],['need','محتاجه منك']];
+const TABS=[['sync','المزامنة'],['furn','العفش'],['walls','الحيطان والفتحات'],['rooms','الغرف'],['ctrl','التحكم والأداء'],['design','التصميم'],['light','الإضاءة والوقت'],['dims','الأبعاد'],['qty','الكميات والتكلفة'],['need','محتاجه منك']];
 let tab='design';
 const AREA_MAIN={liv:'معيشة',din:'سفرة'};
 function chips(key,opts,cur,fn){return`<div class="chips">${opts.map(([v,l])=>`<button data-k="${key}" data-v="${v}" class="${String(cur)===String(v)?'on':''}">${l}</button>`).join('')}</div>`}
@@ -740,14 +856,16 @@ function renderTabs(){
   $('tabs').innerHTML=TABS.map(([k,t])=>`<button data-tab="${k}" class="${tab===k?'on':''}">${t}</button>`).join('');
   const b=$('body');
   if(tab==='sync'){const tok=localStorage.getItem('prop:ghtoken')||'';
-    b.innerHTML=`<div class="note">أي تعديل بتعمله هنا (عفش، حيطان، فتحات) بيتحفظ على <b>الجهاز والمتصفح ده بس</b>. علشان يظهر على كل الأجهزة وعلى نسخة GitHub، احفظه في المستودع.</div>
-    ${window.MODEL_INLINE?'<div class="note" style="margin-top:8px;color:var(--amber)">إنت دلوقتي في نسخة Claude، وهي مقفولة على النت، فالحفظ والتحديث مش هيشتغلوا هنا. شغّل نفس الشغل من صفحة GitHub: powerflash1000.github.io/properties/viewer/index.html</div>':''}
-    <h4>مفتاح GitHub (مرة واحدة)</h4>
-    <div class="row"><label for="ghtok">المفتاح</label><input type="password" id="ghtok" value="${esc2(tok)}" placeholder="github_pat_…" autocomplete="off" style="flex:2 1 220px;font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:7px"></div>
-    <div class="chips"><button data-sync="save">احفظ تعديلاتي في المستودع</button><button data-sync="pull">حدّث من المستودع</button></div>
-    <div class="note" id="syncMsg" style="margin-top:8px"></div>
-    <h4>إزاي تعمل المفتاح</h4>
-    <div class="note">1) افتح github.com/settings/personal-access-tokens/new<br>2) الاسم: properties-viewer، والمدة: 90 يوم.<br>3) Repository access: <b>Only select repositories</b> واختار <b>properties</b>.<br>4) Permissions → Repository permissions → <b>Contents: Read and write</b>.<br>5) Generate token وانسخه وحطه فوق.<br>المفتاح بيتحفظ على جهازك بس. تقدر تمسحه من GitHub في أي وقت.</div>
+    b.innerHTML=`<div class="note">زرار <b>💾 احفظ</b> (تحت على الشاشة دايمًا) بيحفظ تصميمك على GitHub، ويعمل <b>نسخة احتياطية مرقّمة</b>. أي جهاز تاني (مامي والأولاد) هيشوف التعديل لوحده خلال دقيقة تقريبًا، وتعديلاتهم بتظهر عندك بنفس الطريقة. لو حد عدّل وإنت لسه ما حفظتش، التعديلات بتتدمج.</div>
+    ${window.MODEL_INLINE?'<div class="note" style="margin-top:8px;color:var(--amber)">إنت دلوقتي في نسخة Claude، وهي مقفولة على النت، فالحفظ والتحديث مش هيشتغلوا هنا. استخدم صفحة GitHub: powerflash1000.github.io/properties/viewer/index.html</div>':''}
+    <h4>الجهاز ده</h4>
+    <div class="row"><label for="devname">اسم الجهاز (بيظهر في النسخ الاحتياطية)</label><input id="devname" value="${esc2(deviceName())}" style="flex:2 1 160px;font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:7px"></div>
+    <div class="row"><label for="ghtok">مفتاح GitHub</label><input type="password" id="ghtok" value="${esc2(tok)}" placeholder="github_pat_…" autocomplete="off" style="flex:2 1 220px;font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:7px"></div>
+    <div class="chips"><button data-sync="save">💾 احفظ دلوقتي</button><button data-sync="pull">حدّث من المستودع (يمسح تعديلاتي)</button><button data-sync="bk">اعرض النسخ الاحتياطية</button></div>
+    <div class="note" id="syncMsg" style="margin-top:8px">${lastBackup?'آخر نسخة احتياطية عملتها من الجهاز ده: #'+lastBackup:''}</div>
+    <div id="bkList" style="margin-top:6px"></div>
+    <h4>إزاي تعمل المفتاح (مرة واحدة لكل جهاز)</h4>
+    <div class="note">1) افتح github.com/settings/personal-access-tokens/new<br>2) الاسم: properties-viewer، والمدة: 90 يوم.<br>3) Repository access: <b>Only select repositories</b> واختار <b>properties</b>.<br>4) Permissions → Repository permissions → <b>Contents: Read and write</b>.<br>5) Generate token وانسخه وحطه فوق.<br>المفتاح بيتحفظ على الجهاز ده بس ومش بيتبعت لحد. أي حد معاه المفتاح يقدر يعدّل المستودع، فمتبعتوش في رسائل عامة، وتقدر تمسحه من GitHub في أي وقت. كل فرد في العيلة يعمل مفتاحه من حسابه (لازم تضيفه Collaborator على المستودع) أو تديله مفتاح مخصوص ليه.</div>
     <h4>من غير مفتاح</h4><div class="note">اضغط «انسخ تعديلاتي» في تبويب العفش وابعتها لـ Claude في الشات، وهو يثبّتها في المستودع.</div>`}
   else if(tab==='ctrl'){b.innerHTML=`<h4>العصا (الدايرة)</h4>${chips('stickMode',[['turn','يمين/شمال = لفّ حوالين نفسك'],['strafe','يمين/شمال = مشي جانبي']],ST.stickMode)}${sl('turn','سرعة اللفّ بالعصا',ST.turn||1.6,.5,4,.1,'')}
     <h4>الحركة</h4>${sl('speed','سرعة المشي',ST.speed,.5,4,.1,' م/ث')}${sl('sens','حساسية النظر',ST.sens,.3,2.5,.1,'×')}
@@ -766,8 +884,9 @@ function renderTabs(){
     <div class="dpad"><span class="sp"></span><button data-mv="f" aria-label="لقدام (ناحية بعيد عنك)">▲</button><span class="sp"></span><button data-mv="l" aria-label="شمال">◀</button><button data-mv="b" aria-label="لورا">▼</button><button data-mv="r" aria-label="يمين">▶</button></div>
     <div class="chips"><button data-rot="-0.2618">⟲ 15°</button><button data-rot="0.2618">⟳ 15°</button><button data-rot="1.5708">↻ 90°</button><button data-act="dup">نسخة</button><button data-act="del">شيل</button><button data-act="reset">رجّع القطعة</button></div>
     <div class="chips" style="margin-top:6px"><button data-act="snapwall">ألصقه بأقرب حيطة</button><button data-act="straight">عدّل الزاوية (مستقيم)</button></div>
+    <div id="dimBox"></div>
     <h4>انقلها لجدار في نفس الغرفة</h4>
-    <div class="chips">${[1,2,3,4].map(n=>`<button data-towall="${n}">جدار ${n} (${WN_NAMES[n]})</button>`).join('')}<button data-act="centerwall">وسّطها على الجدار اللي جنبها</button></div>
+    <div class="chips">${[1,2,3,4].map(n=>`<button data-towall="${n}">جدار ${n} (${WN_NAMES[n]})</button>`).join('')}<button data-act="centerwall">وسّطها على الجدار اللي جنبها</button><button data-act="fitwall">املا عرض الجدار (أوتوماتيك)</button></div>
     <div class="note">الجدران مرقّمة مع عقارب الساعة: 1 هو اللي فوق في الرسم، 2 يمين، 3 تحت، 4 شمال. الأرقام بتظهر على جدران الغرفة، وتقدر تضغط على الرقم نفسه علشان تنقل القطعة له.</div>
     ${tg('wnum','أرقام الجدران على الشاشة دايمًا',ST.wnum)}
     <h4>إضافة قطعة جديدة (قدامي)</h4>
@@ -843,7 +962,8 @@ const dirty=()=>{save()};
 $('body').addEventListener('click',e=>{
   const b=e.target.closest('button');if(!b)return;
   if(b.dataset.towall){moveToRoomWall(+b.dataset.towall);return}
-  if(b.dataset.sync){if(b.dataset.sync==='save')syncSave();else syncPull();return}
+  if(b.dataset.bk){restoreBackup(+b.dataset.bk);return}
+  if(b.dataset.sync){if(b.dataset.sync==='save')syncSave();else if(b.dataset.sync==='bk')listBackups();else syncPull();return}
   if(b.dataset.wput!=null){putOnWall(+b.dataset.wput);return}
   if(b.dataset.wside){wSide=+b.dataset.wside;renderWallPanel();return}
   if(b.dataset.w){wallAction(b.dataset.w);return}
@@ -851,7 +971,9 @@ $('body').addEventListener('click',e=>{
   if(b.dataset.mv){nudge(b.dataset.mv);return}
   if(b.dataset.rot){rotItem(+b.dataset.rot);return}
   if(b.dataset.add){addItem(b.dataset.add);renderTabs();return}
-  if(b.dataset.act){const a=b.dataset.act;if(a==='centerwall'){moveToRoomWall(0,true);return}
+  if(b.dataset.dim){const [k,v]=b.dataset.dim.split(':');dimStep(k,+v);return}
+  if(b.dataset.rk||b.dataset.rm||b.dataset.rk2){roomAct(b);return}
+  if(b.dataset.act){const a=b.dataset.act;if(a==='centerwall'){moveToRoomWall(0,true);return}if(a==='fitwall'){fitWall(0);return}
   if(a==='snapwall'){const it=selId&&itemById(selId);const pp=it&&snapItemToWall(it);if(pp){patchItem(selId,pp);refurnish()}else toast('مفيش حيطة قريبة من القطعة دي')}else if(a==='straight'){const it=selId&&itemById(selId);if(it){patchItem(selId,{ry:+(Math.round((it.ry||0)/(Math.PI/2))*Math.PI/2).toFixed(4)});refurnish()}}else if(a==='dup')dupItem();else if(a==='del'){delItem();renderTabs()}else if(a==='reset')resetItem();else if(a==='resetall')resetAll();else if(a==='copyedits')copyText(editsText(),'copyMsg');else if(a==='copylink')copyText(shareLink(),'copyMsg');return}
   if(b.dataset.hr){ST.hour=+b.dataset.hr;setTime();renderTabs();dirty();return}
   const k=b.dataset.k;if(k==null)return;let v=b.dataset.v;
@@ -867,12 +989,15 @@ $('body').addEventListener('click',e=>{
 });
 $('body').addEventListener('change',e=>{
   const t=e.target;
+  if(t.id==='rsel'){rsel=t.value;renderTabs();return}
   if(t.id==='fsel'){selectItem(t.value||null);return}
   if(t.dataset.t){ST[t.dataset.t]=t.checked;if(t.dataset.t==='lamps')setTime();else if(t.dataset.t==='flab'||t.dataset.t==='fdir'){refurnish()}else if(t.dataset.t==='wnum'){renderLabels()}else if(['inv','autoLevel'].includes(t.dataset.t)){}else rebuild();if(t.dataset.t==='labels')renderLabels();dirty()}
   if(t.dataset.p){PR[t.dataset.p]=+t.value;try{localStorage.setItem('prop:'+APT+':pr',JSON.stringify(PR))}catch(e){}calcTot()}
 });
 $('body').addEventListener('input',e=>{
   const t=e.target;
+  if(t.id==='rname'){if(rsel)setRoomName(rsel,t.value);return}
+  if(t.id==='devname'){try{localStorage.setItem('prop:device',t.value.trim())}catch(x){}return}
   if(t.id==='ghtok'){try{localStorage.setItem('prop:ghtoken',t.value.trim())}catch(x){}return}if(t.dataset.p){PR[t.dataset.p]=+t.value;calcTot();return}
   if(!t.dataset.s)return;const k=t.dataset.s,v=+t.value;$('v_'+k).textContent=v.toFixed(t.step<1?2:0)+(k==='north'?'°':k==='fov'?'°':k==='hour'?'':k==='speed'?' م/ث':k==='sens'?'×':k==='spinSpeed'||k==='turn'?'':' م');
   if(k==='hour'){ST.hour=v;setTime()}else if(k==='north'){ST.north=v;setTime()}else if(k==='fov'){P.fov=v;applyCam()}else if(k==='eye'){P.eye=v;applyCam();hud()}
@@ -919,7 +1044,8 @@ function boot(){
   if(innerWidth<760)sheetOpen(false);
   let last=performance.now();
   (function loop(now){requestAnimationFrame(loop);const raw=(now-last)/1000,dt=Math.min(.05,raw);last=now;perf(raw);step(dt);drawMini();applyCam();if(mode==='walk'&&(mv.x||mv.y||glide||ST.spin||(++hudN%10===0)))hud();if(boxHelper)boxHelper.update();updateLabels();renderer.render(scene,cam)})(last);
-  window.__walk={bakedModel,syncSave,syncPull,moveToRoomWall,putOnWall,snapItemToWall,itemById,get selId(){return selId},get selWall(){return selWall},get lastHit(){return lastHit},get pitch(){return pitch},set pitch(v){pitch=v},get pos(){return pos},get yaw(){return yaw},get glide(){return glide},toast,wallOp,wallAction,OPINFO,get WALLS(){return WALLS},get ROOMS(){return ROOMS},setSel:(w,o)=>{selWall=w;selOp=o||null;wallHL();renderWallPanel()},ST,P,goPreset,setMode,rebuild,get Q(){return Q},cam,scene,get FURN(){return FURN},get edits(){return edits},selectItem,nudge,rotItem,addItem,delItem,orbit,focusRoom,orbitZoom,get mode(){return mode},enterHere,refurnish,furnMap};
+  $('bSave').onclick=()=>syncSave();updateSaveBtn();setTimeout(syncPoll,2500);
+  window.__walk={fitWall,syncPoll,hasEdits,setRoom,restoreBackup,listBackups,dimStep,bakedModel,syncSave,syncPull,moveToRoomWall,putOnWall,snapItemToWall,itemById,get selId(){return selId},get selWall(){return selWall},get lastHit(){return lastHit},get pitch(){return pitch},set pitch(v){pitch=v},get pos(){return pos},get yaw(){return yaw},get glide(){return glide},toast,wallOp,wallAction,OPINFO,get WALLS(){return WALLS},get ROOMS(){return ROOMS},setSel:(w,o)=>{selWall=w;selOp=o||null;wallHL();renderWallPanel()},ST,P,goPreset,setMode,rebuild,get Q(){return Q},cam,scene,get FURN(){return FURN},get edits(){return edits},selectItem,nudge,rotItem,addItem,delItem,orbit,focusRoom,orbitZoom,get mode(){return mode},enterHere,refurnish,furnMap};
 }
 (window.MODEL_INLINE?Promise.resolve(window.MODEL_INLINE):fetch('../apartments/'+APT+'/model.json').then(r=>{if(!r.ok)throw new Error('HTTP '+r.status);return r.json()}))
  .then(m=>{applyModel(m);boot()}).catch(e=>{const x=$('err');x.style.display='flex';x.textContent='ما قدرتش أحمّل بيانات العقار: '+e.message});

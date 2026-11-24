@@ -43,3 +43,8 @@ Private repo for the family's properties (apartment now; villa and chalet later)
 
 ## Roadmap
 Realistic renders: export `model.json` to Blender (Cycles, bpy) for photoreal stills/360° panoramas; apply real material photos as textures; villa and chalet folders.
+
+## Sync v2 + dressing tools (2026-11-24)
+- Dock button «💾 احفظ» (always visible; yellow ● = unsaved). Save = fetch remote `model.json`; if its sha differs from our base sha, adopt remote and replay our `edits` on top (merge), then PUT, then write a numbered backup `apartments/<id>/backups/NNNN.json` + `backups/log.json` ({last, items:[{n,t,by,note}]}). Other devices poll every 45 s (120 s without token) and on tab focus (`syncPoll`) and merge the same way. Restore = «اعرض النسخ الاحتياطية» → «ارجع لها» (marks dirty, then save).
+- Each device needs its own fine-grained PAT (Contents RW). The Claude artifact can't sync.
+- `edits.r[roomId]` = {n,k,x0,x1,z0,z1} overrides (Rooms tab «الغرف»: rename, kind, edges ±10 cm, bath→dressing). New types `glasswardrobe` (glass doors + LED strips) and `glasspanel`; per-item dimension −/+ (`DIMS`), `fitWall(n)` fills the free span of a room wall between openings.

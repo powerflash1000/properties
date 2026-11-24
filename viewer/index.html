@@ -73,7 +73,7 @@ td input{width:90px;font:inherit;color:var(--ink);background:var(--bg);border:1p
   <canvas id="c" tabindex="0"></canvas>
   <div id="labels"></div>
   <div class="top" id="presets"></div>
-  <div class="zoombar" id="zoombar"><button id="oIn" aria-label="تكبير">➕</button><button id="oOut" aria-label="تصغير">➖</button><button id="oFit" aria-label="الشقة كلها">⤢</button><button id="oTop" aria-label="من فوق" class="orbonly">⬇</button><button id="oHere" aria-label="ادخل هنا" class="orbonly">🚶</button><button id="oL90" class="walkonly" aria-label="لفّ شمال 90 درجة">⟲ 90°</button><button id="oR90" class="walkonly" aria-label="لفّ يمين 90 درجة">⟳ 90°</button><button id="oSpin" class="walkonly" aria-label="لفّة 360 تلقائية">🔄 360°</button></div>
+  <div class="zoombar" id="zoombar"><button id="oIn" aria-label="تكبير">➕</button><button id="oOut" aria-label="تصغير">➖</button><button id="oFit" aria-label="الشقة كلها">⤢</button><button id="oTop" aria-label="من فوق" class="orbonly">⬇</button><button id="oHere" aria-label="ادخل هنا" class="orbonly">🚶</button><button id="oL90" class="walkonly" aria-label="لفّ شمال 90 درجة">⟲ 90°</button><button id="oR90" class="walkonly" aria-label="لفّ يمين 90 درجة">⟳ 90°</button><button id="oSpinL" class="walkonly" aria-label="لفّ شمال 360 درجة">🔄 شمال</button><button id="oSpinR" class="walkonly" aria-label="لفّ يمين 360 درجة">🔄 يمين</button></div>
   <div class="hud" id="hud"></div>
   <div class="stick" id="stick" aria-label="عصا الحركة"><i id="knob"></i></div>
   <canvas class="mini" id="mini" width="480" height="200" aria-label="خريطة صغيرة، اضغط عليها علشان تنتقل"></canvas>
@@ -103,7 +103,7 @@ if(!T){const e=$('err');e.style.display='flex';e.textContent='ما قدرتش أ
 /* ================= parameters & state ================= */
 const APT=new URLSearchParams(location.search).get('apt')||'apt1';
 const P={ceil:2.7,doorH:2.3,doorW:1.0,balc:1.5,sill:.9,eye:1.6,fov:72};
-const ST={pal:1,main:'porcelain',bed:'wood',cove:true,spots:true,accent:true,curtains:true,kitOpen:false,doorsOpen:true,hour:16,north:270,light:'studio',tile:.6,cor:'wood',door:'brown',lamps:false,labels:true,q:(/iPad|iPhone|Android|Mobile/i.test(navigator.userAgent)||navigator.maxTouchPoints>1)?'mid':'high',speed:1.6,sens:1,inv:false,autoLevel:true,spin:false,cut:false,furn:true,plants:true,fdir:false,flab:false,
+const ST={pal:1,main:'porcelain',bed:'wood',cove:true,spots:true,accent:true,curtains:true,kitOpen:false,doorsOpen:true,hour:16,north:270,light:'studio',tile:.6,cor:'wood',door:'brown',lamps:false,labels:true,q:(/iPad|iPhone|Android|Mobile/i.test(navigator.userAgent)||navigator.maxTouchPoints>1)?'mid':'high',speed:1.6,sens:1,inv:false,autoLevel:true,spin:0,spinSpeed:.45,cut:false,furn:true,plants:true,fdir:false,flab:false,
   lay:{liv:0,din:0,kit:0,b1:0,b2:0}};
 const PALS=[
  {n:'ساحل إسكندرية',w:'#eef1f0',a:'#7fa6b5',f:'#d8d2c6',wd:'#c9a77c',m:'#bfc5c8'},
@@ -518,7 +518,7 @@ function glideTo(cx,cy){setRay(cx,cy);const o=ray.ray.origin,d=ray.ray.direction
 function toast(t){const el=$('toast');el.textContent=t;el.classList.add('on');clearTimeout(toast.t);toast.t=setTimeout(()=>el.classList.remove('on'),4000)}
 function step(dt){
   if(mode!=='walk')return;
-  if(ST.spin)yaw+=.45*dt;
+  if(+ST.spin)yaw+=(+ST.spin>0?1:-1)*(ST.spinSpeed||.45)*dt;
   if(glide){if(mv.x||mv.y)glide=null;else{glide.t+=dt/.6;const e=glide.t>=1?1:1-Math.pow(1-glide.t,3);pos.x=glide.x0+(glide.x1-glide.x0)*e;pos.z=glide.z0+(glide.z1-glide.z0)*e;if(glide.t>=1)glide=null;return}}
   let fx=mv.y,sx=mv.x;if(keys.w||keys.arrowup)fx+=1;if(keys.s||keys.arrowdown)fx-=1;if(keys.d||keys.arrowright)sx+=1;if(keys.a||keys.arrowleft)sx-=1;
   if(keys.q)yaw-=1.6*dt;if(keys.e)yaw+=1.6*dt;
@@ -631,7 +631,7 @@ stick.addEventListener('pointerdown',e=>{stickId=e.pointerId;stick.setPointerCap
 stick.addEventListener('pointermove',e=>{if(e.pointerId===stickId)stickMove(e)});
 const stickEnd=e=>{if(e.pointerId===stickId){stickId=null;mv.x=mv.y=0;knob.style.transform=''}};
 stick.addEventListener('pointerup',stickEnd);stick.addEventListener('pointercancel',stickEnd);
-canvas.addEventListener('pointerdown',e=>{canvas.setPointerCapture(e.pointerId);ptr.set(e.pointerId,{x:e.clientX,y:e.clientY});
+canvas.addEventListener('pointerdown',e=>{if(+ST.spin){ST.spin=0;syncSpin();if(tab==='ctrl')renderTabs()}canvas.setPointerCapture(e.pointerId);ptr.set(e.pointerId,{x:e.clientX,y:e.clientY});
   if(ptr.size===1){tapT=performance.now();tapMoved=0}
   if(ptr.size===2){const [a,b]=[...ptr.values()];pinch0=Math.hypot(a.x-b.x,a.y-b.y)||1;mid0={x:(a.x+b.x)/2,y:(a.y+b.y)/2};tapMoved=99}});
 canvas.addEventListener('pointermove',e=>{const p=ptr.get(e.pointerId);if(!p)return;const dx=e.clientX-p.x,dy=e.clientY-p.y;p.x=e.clientX;p.y=e.clientY;tapMoved+=Math.abs(dx)+Math.abs(dy);
@@ -650,7 +650,9 @@ $('oOut').onclick=()=>{if(mode==='walk'){P.fov=Math.min(100,P.fov+10);applyCam()
 $('oFit').onclick=()=>{if(mode==='walk'){P.fov=72;pitch=0;applyCam()}else orbitFit()};
 $('bLevel').onclick=()=>{pitch=0;P.fov=72;applyCam();hud();toast('النظر بقى أفقي')};
 $('oL90').onclick=()=>{yaw-=Math.PI/2;applyCam()};$('oR90').onclick=()=>{yaw+=Math.PI/2;applyCam()};
-$('oSpin').onclick=()=>{ST.spin=!ST.spin;$('oSpin').classList.toggle('on',ST.spin);save()};
+function syncSpin(){const sp=+ST.spin||0;$('oSpinL').classList.toggle('on',sp<0);$('oSpinR').classList.toggle('on',sp>0);save()}
+$('oSpinL').onclick=()=>{ST.spin=(+ST.spin<0)?0:-1;syncSpin();if(tab==='ctrl')renderTabs()};
+$('oSpinR').onclick=()=>{ST.spin=(+ST.spin>0)?0:1;syncSpin();if(tab==='ctrl')renderTabs()};
 $('oTop').onclick=orbitTop;$('oHere').onclick=enterHere;
 
 /* ================= minimap ================= */
@@ -690,7 +692,7 @@ function renderTabs(){
   $('tabs').innerHTML=TABS.map(([k,t])=>`<button data-tab="${k}" class="${tab===k?'on':''}">${t}</button>`).join('');
   const b=$('body');
   if(tab==='ctrl'){b.innerHTML=`<h4>الحركة</h4>${sl('speed','سرعة المشي',ST.speed,.5,4,.1,' م/ث')}${sl('sens','حساسية النظر',ST.sens,.3,2.5,.1,'×')}
-    ${tg('inv','عكس اتجاه النظر لفوق وتحت',ST.inv)}${tg('autoLevel','النظر يرجع أفقي لوحده وانت ماشي',ST.autoLevel)}${tg('spin','لفّة 360° تلقائية (للتفرج)',ST.spin)}
+    ${tg('inv','عكس اتجاه النظر لفوق وتحت',ST.inv)}${tg('autoLevel','النظر يرجع أفقي لوحده وانت ماشي',ST.autoLevel)}<h4>لفّة 360° تلقائية (للتفرج)</h4>${chips('spin',[[0,'واقف'],[1,'لفّ يمين'],[-1,'لفّ شمال']],+ST.spin||0)}${sl('spinSpeed','سرعة اللفّة',ST.spinSpeed||.45,.1,1.5,.05,'')}
     <h4>الأداء</h4>${chips('q',[['high','عالية'],['mid','متوسطة'],['low','خفيفة']],ST.q)}
     <div class="note">لو الحركة تقيلة اختار «خفيفة». البرنامج كمان بينزّل الجودة لوحده لو حس إن الجهاز بيهنّج.</div>
     <h4>العدسة</h4>${sl('fov','زاوية الرؤية',P.fov,50,100,1,'°')}${sl('eye','ارتفاع العين',P.eye,1.0,2.0,.05,' م')}
@@ -790,6 +792,7 @@ $('body').addEventListener('click',e=>{
   if(k.startsWith('lay.')){ST.lay[k.slice(4)]=+v;rebuild()}
   else if(k==='pal'){ST.pal=+v;rebuild()}
   else if(k==='q'){ST.q=v;applyQuality();rebuild()}
+  else if(k==='spin'){ST.spin=+v;syncSpin()}
   else if(k==='light'){ST.light=v;setTime()}
   else if(k==='tile'){ST.tile=+v;rebuild()}
   else{ST[k]=v;rebuild()}
@@ -798,14 +801,14 @@ $('body').addEventListener('click',e=>{
 $('body').addEventListener('change',e=>{
   const t=e.target;
   if(t.id==='fsel'){selectItem(t.value||null);return}
-  if(t.dataset.t){ST[t.dataset.t]=t.checked;if(t.dataset.t==='lamps')setTime();else if(t.dataset.t==='flab'||t.dataset.t==='fdir'){refurnish()}else if(['inv','autoLevel','spin'].includes(t.dataset.t)){$('oSpin').classList.toggle('on',ST.spin)}else rebuild();if(t.dataset.t==='labels')renderLabels();dirty()}
+  if(t.dataset.t){ST[t.dataset.t]=t.checked;if(t.dataset.t==='lamps')setTime();else if(t.dataset.t==='flab'||t.dataset.t==='fdir'){refurnish()}else if(['inv','autoLevel'].includes(t.dataset.t)){}else rebuild();if(t.dataset.t==='labels')renderLabels();dirty()}
   if(t.dataset.p){PR[t.dataset.p]=+t.value;try{localStorage.setItem('prop:'+APT+':pr',JSON.stringify(PR))}catch(e){}calcTot()}
 });
 $('body').addEventListener('input',e=>{
   const t=e.target;if(t.dataset.p){PR[t.dataset.p]=+t.value;calcTot();return}
-  if(!t.dataset.s)return;const k=t.dataset.s,v=+t.value;$('v_'+k).textContent=v.toFixed(t.step<1?2:0)+(k==='north'?'°':k==='fov'?'°':k==='hour'?'':k==='speed'?' م/ث':k==='sens'?'×':' م');
+  if(!t.dataset.s)return;const k=t.dataset.s,v=+t.value;$('v_'+k).textContent=v.toFixed(t.step<1?2:0)+(k==='north'?'°':k==='fov'?'°':k==='hour'?'':k==='speed'?' م/ث':k==='sens'?'×':k==='spinSpeed'?'':' م');
   if(k==='hour'){ST.hour=v;setTime()}else if(k==='north'){ST.north=v;setTime()}else if(k==='fov'){P.fov=v;applyCam()}else if(k==='eye'){P.eye=v;applyCam();hud()}
-  else if(k==='speed'||k==='sens'){ST[k]=v}
+  else if(k==='speed'||k==='sens'||k==='spinSpeed'){ST[k]=v}
   else{P[k]=v;clearTimeout(rbT);rbT=setTimeout(rebuild,250)}dirty();
 });
 let rbT=0;function rebuild(){build();applyCam()}
@@ -844,7 +847,7 @@ let hudN=0,pAcc=0,pN=0,pDown=0;const pStart=performance.now();
 function perf(raw){if(performance.now()-pStart<5000||raw>.5||document.hidden)return;pAcc+=raw;pN++;if(pN>=75){const avg=pAcc/pN;pAcc=0;pN=0;if(avg>.04&&ST.q!=='low'&&pDown<2){pDown++;ST.q=ST.q==='high'?'mid':'low';applyQuality();rebuild();save();toast('الجهاز كان بيهنّج شوية، فنزّلت الجودة لـ «'+(ST.q==='mid'?'متوسطة':'خفيفة')+'» علشان الحركة تسلس. تغيّرها من «التحكم والأداء».')}}}
 function boot(){
   lightsInit();setupEnv();makeSky();skyline();applyQuality();build();renderTabs();
-  setMode('walk');pos.set(8.45,P.eye,7.6);yaw=-.55;applyCam();hud();
+  setMode('walk');pos.set(8.45,P.eye,7.6);yaw=-.55;ST.spin=0;syncSpin();applyCam();hud();
   if(innerWidth<760)sheetOpen(false);
   let last=performance.now();
   (function loop(now){requestAnimationFrame(loop);const raw=(now-last)/1000,dt=Math.min(.05,raw);last=now;perf(raw);step(dt);drawMini();applyCam();if(mode==='walk'&&(mv.x||mv.y||glide||ST.spin||(++hudN%10===0)))hud();if(boxHelper)boxHelper.update();updateLabels();renderer.render(scene,cam)})(last);

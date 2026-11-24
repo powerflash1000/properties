@@ -22,7 +22,7 @@ Private repo for the family's properties (apartment now; villa and chalet later)
 - Wall panel also has «حط عفش على الحيطة دي»: picks a side (room) and a type (TV unit, bookcase, wardrobe, sofa, console, mirror, desk, bed); the item is snapped back-to-wall at the last tapped point (`snapItemToWall` using the item's bounding box) and then selected for moving. Furniture panel has «ألصقه بأقرب حيطة» and «عدّل الزاوية»; items added "in front of me" are rotated to a multiple of 90°.
 
 ## Controls (walk mode)
-- Left stick (deadzone + curve, speed slider), drag to look (sensitivity/invert), «👁 أفقي» levels the view, ⟲/⟳ 90° snap turns, 🔄 auto 360°, double-tap floor = glide there, minimap (bottom-left) shows position/heading and teleports on tap, auto-level pitch while walking. Quality high/mid/low with auto-downgrade when the average frame time is >40 ms.
+- Left stick (deadzone + curve, speed slider), drag to look (sensitivity/invert), «👁 أفقي» levels the view, ⟲/⟳ 90° snap turns, 🔄 auto 360° (separate left/right buttons, speed slider, any touch stops it), double-tap floor = glide there, minimap (bottom-left) shows position/heading and teleports on tap, auto-level pitch while walking. Quality high/mid/low with auto-downgrade when the average frame time is >40 ms.
 
 ## Apartment 1 — known facts (from the owner)
 - Total 202 m² (gross); dimensions on the plan sum to ~140 m² net. Ceiling 2.70 m. Doors ~1.0×2.30 m. Balcony doors ~1.5 m. Reception window 1×1 m, kitchen window ~1.1 m, small bathroom windows.

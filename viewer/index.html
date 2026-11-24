@@ -54,6 +54,10 @@ td input{width:90px;font:inherit;color:var(--ink);background:var(--bg);border:1p
 .shot img{max-width:100%;max-height:78%;border-radius:8px}
 .shot button{font:inherit;padding:8px 18px;border-radius:10px;border:1px solid var(--line);background:var(--panel-solid);color:var(--ink)}
 #err{position:absolute;inset:0;display:none;align-items:center;justify-content:center;text-align:center;padding:24px;direction:rtl;line-height:1.8}
+.stick{width:156px!important;height:156px!important}.stick i{width:64px!important;height:64px!important;margin:-32px!important}
+.mini{position:absolute;left:max(10px,env(safe-area-inset-left,0px));bottom:calc(env(safe-area-inset-bottom,0px) + 190px);width:240px;height:100px;background:rgba(18,24,33,.74);border:1px solid var(--line);border-radius:10px;touch-action:none;z-index:15}
+#toast{position:absolute;left:50%;top:calc(env(safe-area-inset-top,0px) + 100px);transform:translateX(-50%);max-width:min(92%,560px);background:var(--amber);color:#1a1200;border-radius:10px;padding:10px 14px;font-weight:600;font-size:14px;line-height:1.6;z-index:40;display:none;direction:rtl;text-align:center}
+#toast.on{display:block}
 .zoombar{position:absolute;left:max(10px,env(safe-area-inset-left,0px));top:calc(env(safe-area-inset-top,0px) + 100px);display:flex;flex-direction:column;gap:8px;z-index:25;direction:rtl}
 .zoombar button{font:inherit;color:var(--ink);background:var(--panel);border:1px solid var(--line);border-radius:10px;min-width:52px;height:48px;font-size:20px;cursor:pointer;padding:0 10px;backdrop-filter:blur(6px)}
 .lbl.room{pointer-events:auto;cursor:pointer;background:rgba(0,0,0,.62);font-weight:600}
@@ -69,10 +73,13 @@ td input{width:90px;font:inherit;color:var(--ink);background:var(--bg);border:1p
   <canvas id="c" tabindex="0"></canvas>
   <div id="labels"></div>
   <div class="top" id="presets"></div>
-  <div class="zoombar" id="zoombar"><button id="oIn" aria-label="تكبير">➕</button><button id="oOut" aria-label="تصغير">➖</button><button id="oFit" aria-label="الشقة كلها">⤢</button><button id="oTop" aria-label="من فوق" class="orbonly">⬇</button><button id="oHere" aria-label="ادخل هنا" class="orbonly">🚶</button></div>
+  <div class="zoombar" id="zoombar"><button id="oIn" aria-label="تكبير">➕</button><button id="oOut" aria-label="تصغير">➖</button><button id="oFit" aria-label="الشقة كلها">⤢</button><button id="oTop" aria-label="من فوق" class="orbonly">⬇</button><button id="oHere" aria-label="ادخل هنا" class="orbonly">🚶</button><button id="oL90" class="walkonly" aria-label="لفّ شمال 90 درجة">⟲ 90°</button><button id="oR90" class="walkonly" aria-label="لفّ يمين 90 درجة">⟳ 90°</button><button id="oSpin" class="walkonly" aria-label="لفّة 360 تلقائية">🔄 360°</button></div>
   <div class="hud" id="hud"></div>
   <div class="stick" id="stick" aria-label="عصا الحركة"><i id="knob"></i></div>
+  <canvas class="mini" id="mini" width="480" height="200" aria-label="خريطة صغيرة، اضغط عليها علشان تنتقل"></canvas>
+  <div id="toast" role="status"></div>
   <div class="dock">
+    <button id="bLevel">👁 أفقي</button>
     <button id="bMode">منظور علوي</button>
     <button id="bShot">لقطة</button>
     <button id="bOpt" class="on">خيارات</button>
@@ -96,7 +103,7 @@ if(!T){const e=$('err');e.style.display='flex';e.textContent='ما قدرتش أ
 /* ================= parameters & state ================= */
 const APT=new URLSearchParams(location.search).get('apt')||'apt1';
 const P={ceil:2.7,doorH:2.3,doorW:1.0,balc:1.5,sill:.9,eye:1.6,fov:72};
-const ST={pal:1,main:'porcelain',bed:'wood',cove:true,spots:true,accent:true,curtains:true,kitOpen:false,doorsOpen:true,hour:16,north:270,light:'studio',tile:.6,cor:'wood',door:'brown',lamps:false,labels:true,q:'high',cut:false,furn:true,plants:true,fdir:false,flab:false,
+const ST={pal:1,main:'porcelain',bed:'wood',cove:true,spots:true,accent:true,curtains:true,kitOpen:false,doorsOpen:true,hour:16,north:270,light:'studio',tile:.6,cor:'wood',door:'brown',lamps:false,labels:true,q:(/iPad|iPhone|Android|Mobile/i.test(navigator.userAgent)||navigator.maxTouchPoints>1)?'mid':'high',speed:1.6,sens:1,inv:false,autoLevel:true,spin:false,cut:false,furn:true,plants:true,fdir:false,flab:false,
   lay:{liv:0,din:0,kit:0,b1:0,b2:0}};
 const PALS=[
  {n:'ساحل إسكندرية',w:'#eef1f0',a:'#7fa6b5',f:'#d8d2c6',wd:'#c9a77c',m:'#bfc5c8'},
@@ -505,11 +512,18 @@ function applyCam(){
   cam.fov=P.fov;cam.updateProjectionMatrix();
 }
 function collide(nx,nz){const r=.22;for(const c of colliders){if(nx>c.x0-r&&nx<c.x1+r&&nz>c.z0-r&&nz<c.z1+r)return true}return false}
+let glide=null;
+function startGlide(x,z){glide={x0:pos.x,z0:pos.z,x1:x,z1:z,t:0}}
+function glideTo(cx,cy){setRay(cx,cy);const o=ray.ray.origin,d=ray.ray.direction;if(d.y>-1e-3)return;const t=-o.y/d.y,x=o.x+d.x*t,z=o.z+d.z*t;if(roomAt(x,z)&&!collide(x,z))startGlide(x,z);else toast('المكان ده مينفعش تقف فيه')}
+function toast(t){const el=$('toast');el.textContent=t;el.classList.add('on');clearTimeout(toast.t);toast.t=setTimeout(()=>el.classList.remove('on'),4000)}
 function step(dt){
   if(mode!=='walk')return;
+  if(ST.spin)yaw+=.45*dt;
+  if(glide){if(mv.x||mv.y)glide=null;else{glide.t+=dt/.6;const e=glide.t>=1?1:1-Math.pow(1-glide.t,3);pos.x=glide.x0+(glide.x1-glide.x0)*e;pos.z=glide.z0+(glide.z1-glide.z0)*e;if(glide.t>=1)glide=null;return}}
   let fx=mv.y,sx=mv.x;if(keys.w||keys.arrowup)fx+=1;if(keys.s||keys.arrowdown)fx-=1;if(keys.d||keys.arrowright)sx+=1;if(keys.a||keys.arrowleft)sx-=1;
   if(keys.q)yaw-=1.6*dt;if(keys.e)yaw+=1.6*dt;
-  const l=Math.hypot(fx,sx);if(l<.02)return;const k=Math.min(1,l),sp=(keys.shift?3.4:1.7)*dt*k;fx/=l;sx/=l;
+  const l=Math.hypot(fx,sx);if(l<.1)return;const k=Math.pow(Math.min(1,l),1.5),sp=(keys.shift?2:1)*ST.speed*dt*k;fx/=l;sx/=l;
+  if(ST.autoLevel)pitch*=Math.max(0,1-3*dt);
   const dx=(Math.sin(yaw)*fx+Math.cos(yaw)*sx)*sp,dz=(-Math.cos(yaw)*fx+Math.sin(yaw)*sx)*sp;
   if(!collide(pos.x+dx,pos.z))pos.x+=dx;if(!collide(pos.x,pos.z+dz))pos.z+=dz;
 }
@@ -523,9 +537,9 @@ function renderPresets(){
   el.innerHTML=mode==='walk'?PRESETS.map((p,i)=>`<button data-i="${i}">${p[0]}</button>`).join(''):`<button data-all="1">الشقة كلها</button>`+ROOMS.filter(r=>!['land'].includes(r.k)).map(r=>`<button data-room="${r.id}">${r.n}</button>`).join('');
 }
 function setMode(m){mode=m;$('bMode').textContent=m==='walk'?'منظور علوي':'مشي';$('bMode').classList.toggle('on',m!=='walk');$('stick').style.display=m==='walk'?'block':'none';
-  document.querySelectorAll('.orbonly').forEach(b=>b.style.display=m==='walk'?'none':'block');
+  document.querySelectorAll('.orbonly').forEach(b=>b.style.display=m==='walk'?'none':'block');document.querySelectorAll('.walkonly').forEach(b=>b.style.display=m==='walk'?'block':'none');$('bLevel').style.display=m==='walk'?'':'none';$('mini').style.display=m==='walk'?'block':'none';
   ST.cut=m!=='walk';ceilGrp.visible=!ST.cut;wallGrp.scale.y=ST.cut?.46:1;if(extGrp)extGrp.visible=m==='walk';renderPresets();renderLabels();applyCam();hud()}
-function hud(){$('hud').textContent=mode==='walk'?`X ${pos.x.toFixed(1)}  Z ${pos.z.toFixed(1)}  ارتفاع العين ${P.eye.toFixed(2)} م`:'اسحب للدوران • صباعين: تكبير وتحريك • ضغطتين: قرّب هنا'}
+function hud(){$('hud').textContent=mode==='walk'?`${(roomAt(pos.x,pos.z)||{n:'برّه'}).n} • X ${pos.x.toFixed(1)} Z ${pos.z.toFixed(1)} • نظر ${Math.round(pitch*57.3)}°`:'اسحب للدوران • صباعين: تكبير وتحريك • ضغطتين: قرّب هنا'}
 
 /* ===== orbit helpers ===== */
 const orbitClamp=()=>{orbit.d=Math.min(80,Math.max(2.2,orbit.d));orbit.el=Math.max(.12,Math.min(1.5,orbit.el))};
@@ -592,7 +606,7 @@ function tapSelect(x,y){setRay(x,y);const hits=ray.intersectObjects(furnGrp.chil
 /* pointer handling: stick + look + orbit/pinch/pan + tap */
 const ptr=new Map();let stickId=null,pinch0=0,mid0=null,tapT=0,tapMoved=0,lastTap=0;
 const stick=$('stick'),knob=$('knob');
-function stickMove(e){const r=stick.getBoundingClientRect(),cx=r.left+r.width/2,cy=r.top+r.height/2;let dx=(e.clientX-cx)/(r.width/2),dy=(e.clientY-cy)/(r.height/2);const l=Math.hypot(dx,dy);if(l>1){dx/=l;dy/=l}knob.style.transform=`translate(${dx*38}px,${dy*38}px)`;mv.x=dx;mv.y=-dy}
+function stickMove(e){const r=stick.getBoundingClientRect(),cx=r.left+r.width/2,cy=r.top+r.height/2;let dx=(e.clientX-cx)/(r.width/2),dy=(e.clientY-cy)/(r.height/2);const l=Math.hypot(dx,dy);if(l>1){dx/=l;dy/=l}knob.style.transform=`translate(${dx*46}px,${dy*46}px)`;mv.x=dx;mv.y=-dy}
 stick.addEventListener('pointerdown',e=>{stickId=e.pointerId;stick.setPointerCapture(e.pointerId);stickMove(e);e.stopPropagation()});
 stick.addEventListener('pointermove',e=>{if(e.pointerId===stickId)stickMove(e)});
 const stickEnd=e=>{if(e.pointerId===stickId){stickId=null;mv.x=mv.y=0;knob.style.transform=''}};
@@ -604,18 +618,31 @@ canvas.addEventListener('pointermove',e=>{const p=ptr.get(e.pointerId);if(!p)ret
   if(ptr.size===2){const [a,b]=[...ptr.values()],d=Math.hypot(a.x-b.x,a.y-b.y)||1,m={x:(a.x+b.x)/2,y:(a.y+b.y)/2};
     if(mode==='walk')P.fov=Math.max(35,Math.min(100,P.fov*(pinch0/d)));else{orbit.d*=pinch0/d;orbitClamp();panBy(m.x-mid0.x,m.y-mid0.y)}
     pinch0=d;mid0=m;applyCam();return}
-  if(mode==='walk'){yaw+=dx*.0045;pitch=Math.max(-1.2,Math.min(1.2,pitch+dy*.0045))}else{orbit.az-=dx*.007;orbit.el=Math.max(.12,Math.min(1.5,orbit.el+dy*.006))}
+  if(mode==='walk'){yaw+=dx*.0045*ST.sens;pitch=Math.max(-1.35,Math.min(1.35,pitch+(ST.inv?-1:1)*dy*.0045*ST.sens))}else{orbit.az-=dx*.007;orbit.el=Math.max(.12,Math.min(1.5,orbit.el+dy*.006))}
   applyCam();hud()});
 canvas.addEventListener('pointerup',e=>{const one=ptr.size===1;ptr.delete(e.pointerId);
-  if(one&&tapMoved<8&&performance.now()-tapT<400){const now=performance.now();if(now-lastTap<320&&mode!=='walk'){zoomToPoint(e.clientX,e.clientY);lastTap=0}else{lastTap=now;tapSelect(e.clientX,e.clientY)}}});
+  if(one&&tapMoved<8&&performance.now()-tapT<400){const now=performance.now();if(now-lastTap<320){if(mode==='walk')glideTo(e.clientX,e.clientY);else zoomToPoint(e.clientX,e.clientY);lastTap=0}else{lastTap=now;tapSelect(e.clientX,e.clientY)}}});
 canvas.addEventListener('pointercancel',e=>ptr.delete(e.pointerId));
 canvas.addEventListener('wheel',e=>{e.preventDefault();if(mode==='walk'){P.fov=Math.max(35,Math.min(100,P.fov+e.deltaY*.03));applyCam()}else{orbit.d*=1+e.deltaY*.0015;orbitClamp();applyCam()}},{passive:false});
 addEventListener('keydown',e=>{keys[e.key.toLowerCase()]=true});addEventListener('keyup',e=>{keys[e.key.toLowerCase()]=false});
 $('oIn').onclick=()=>{if(mode==='walk'){P.fov=Math.max(35,P.fov-10);applyCam()}else orbitZoom(.65)};
 $('oOut').onclick=()=>{if(mode==='walk'){P.fov=Math.min(100,P.fov+10);applyCam()}else orbitZoom(1.5)};
-$('oFit').onclick=()=>{if(mode==='walk'){P.fov=72;applyCam()}else orbitFit()};
+$('oFit').onclick=()=>{if(mode==='walk'){P.fov=72;pitch=0;applyCam()}else orbitFit()};
+$('bLevel').onclick=()=>{pitch=0;P.fov=72;applyCam();hud();toast('النظر بقى أفقي')};
+$('oL90').onclick=()=>{yaw-=Math.PI/2;applyCam()};$('oR90').onclick=()=>{yaw+=Math.PI/2;applyCam()};
+$('oSpin').onclick=()=>{ST.spin=!ST.spin;$('oSpin').classList.toggle('on',ST.spin);save()};
 $('oTop').onclick=orbitTop;$('oHere').onclick=enterHere;
 
+/* ================= minimap ================= */
+const mini=$('mini'),mctx=mini.getContext('2d');let mS=1,mX=0,mZ=0,mKey='';
+function miniLayout(){const x0=-.5,x1=25,z0=-.5,z1=10.4,W=mini.width,H=mini.height;mS=Math.min(W/(x1-x0),H/(z1-z0));mX=(W-(x1-x0)*mS)/2-x0*mS;mZ=(H-(z1-z0)*mS)/2-z0*mS}
+function drawMini(){
+  if(mode!=='walk')return;const k=pos.x.toFixed(2)+pos.z.toFixed(2)+yaw.toFixed(2)+WALLS.length+(edits.w||[]).length;if(k===mKey)return;mKey=k;
+  miniLayout();const c=mctx,W=mini.width,H=mini.height;c.clearRect(0,0,W,H);c.strokeStyle='rgba(255,255,255,.8)';c.lineCap='butt';
+  for(const w of WALLS){if(w.removed)continue;c.lineWidth=Math.max(2.5,w.t*mS);c.beginPath();if(w.ax==='v'){c.moveTo(w.p*mS+mX,w.a*mS+mZ);c.lineTo(w.p*mS+mX,w.b*mS+mZ)}else{c.moveTo(w.a*mS+mX,w.p*mS+mZ);c.lineTo(w.b*mS+mX,w.p*mS+mZ)}c.stroke()}
+  c.fillStyle='#fbbf24';c.save();c.translate(pos.x*mS+mX,pos.z*mS+mZ);c.rotate(yaw);c.beginPath();c.moveTo(0,-16);c.lineTo(10,10);c.lineTo(-10,10);c.closePath();c.fill();c.restore()}
+mini.addEventListener('pointerdown',e=>{e.stopPropagation();e.preventDefault();const r=mini.getBoundingClientRect(),x=((e.clientX-r.left)/r.width*mini.width-mX)/mS,z=((e.clientY-r.top)/r.height*mini.height-mZ)/mS;
+  if(roomAt(x,z)&&!collide(x,z))startGlide(x,z);else toast('المكان ده مينفعش تقف فيه')});
 /* ================= labels ================= */
 function renderLabels(){
   const c=$('labels');c.innerHTML='';
@@ -633,7 +660,7 @@ function updateLabels(){
 }
 
 /* ================= UI panels ================= */
-const TABS=[['furn','العفش'],['walls','الحيطان والفتحات'],['design','التصميم'],['light','الإضاءة والوقت'],['dims','الأبعاد'],['qty','الكميات والتكلفة'],['need','محتاجه منك']];
+const TABS=[['furn','العفش'],['walls','الحيطان والفتحات'],['ctrl','التحكم والأداء'],['design','التصميم'],['light','الإضاءة والوقت'],['dims','الأبعاد'],['qty','الكميات والتكلفة'],['need','محتاجه منك']];
 let tab='design';
 const AREA_MAIN={liv:'معيشة',din:'سفرة'};
 function chips(key,opts,cur,fn){return`<div class="chips">${opts.map(([v,l])=>`<button data-k="${key}" data-v="${v}" class="${String(cur)===String(v)?'on':''}">${l}</button>`).join('')}</div>`}
@@ -642,7 +669,13 @@ function sl(key,label,v,min,max,st,unit){return`<div class="row"><label for="s_$
 function renderTabs(){
   $('tabs').innerHTML=TABS.map(([k,t])=>`<button data-tab="${k}" class="${tab===k?'on':''}">${t}</button>`).join('');
   const b=$('body');
-  if(tab==='walls'){b.innerHTML=`<div class="note">اضغط على أي <b>حيطة</b> أو <b>شباك</b> أو <b>باب</b> في الشقة (من فوق أو وانت ماشي). تقدر تهدمها، تحرّكها، تشيل الشباك أو تضيف فتحة.</div><div id="wBox" style="margin-top:10px"></div><div class="note" style="margin-top:12px">لما تحرّك حيطة بيتغيّر مقاس الغرفتين على جنبيها. وممكن تحتاج بعدها تظبّط الحيطان اللي متصلة بيها. قولّي وأنا أظبطها.</div>`;renderWallPanel()}
+  if(tab==='ctrl'){b.innerHTML=`<h4>الحركة</h4>${sl('speed','سرعة المشي',ST.speed,.5,4,.1,' م/ث')}${sl('sens','حساسية النظر',ST.sens,.3,2.5,.1,'×')}
+    ${tg('inv','عكس اتجاه النظر لفوق وتحت',ST.inv)}${tg('autoLevel','النظر يرجع أفقي لوحده وانت ماشي',ST.autoLevel)}${tg('spin','لفّة 360° تلقائية (للتفرج)',ST.spin)}
+    <h4>الأداء</h4>${chips('q',[['high','عالية'],['mid','متوسطة'],['low','خفيفة']],ST.q)}
+    <div class="note">لو الحركة تقيلة اختار «خفيفة». البرنامج كمان بينزّل الجودة لوحده لو حس إن الجهاز بيهنّج.</div>
+    <h4>العدسة</h4>${sl('fov','زاوية الرؤية',P.fov,50,100,1,'°')}${sl('eye','ارتفاع العين',P.eye,1.0,2.0,.05,' م')}
+    <h4>تلميحات</h4><div class="note">• زرار «👁 أفقي» تحت بيرجّع النظر مستقيم فورًا.<br>• ضغطتين على الأرض بتنقلك هناك.<br>• الخريطة الصغيرة تحت على الشمال بتبيّن مكانك واتجاهك، واضغط عليها علشان تنتقل.<br>• ⟲ ⟳ بيلفّوا 90° بضغطة، و🔄 بيلف 360° لوحده.</div>`}
+  else if(tab==='walls'){b.innerHTML=`<div class="note">اضغط على أي <b>حيطة</b> أو <b>شباك</b> أو <b>باب</b> في الشقة (من فوق أو وانت ماشي). تقدر تهدمها، تحرّكها، تشيل الشباك أو تضيف فتحة.</div><div id="wBox" style="margin-top:10px"></div><div class="note" style="margin-top:12px">لما تحرّك حيطة بيتغيّر مقاس الغرفتين على جنبيها. وممكن تحتاج بعدها تظبّط الحيطان اللي متصلة بيها. قولّي وأنا أظبطها.</div>`;renderWallPanel()}
   else if(tab==='furn'){
     const rooms=ROOMS.filter(r=>r.k!=='land');const byRoom=r=>FURN.filter(i=>{const rr=roomAt(i.x,i.z);return rr&&rr.id===r.id&&itemVisible(i)});
     b.innerHTML=`<div class="note">اضغط على أي قطعة في الشقة (في المنظور العلوي أو وانت ماشي) أو اختارها من القايمة، وبعدها حرّكها بالأسهم.</div>
@@ -681,7 +714,7 @@ function renderTabs(){
     ${sl('north','لفّ اتجاه الشمال',ST.north,0,355,5,'°')}
     <h4>إضاءة الشقة</h4>${tg('lamps','شغّل الأنوار (نهارًا كمان)',ST.lamps)}
     <div class="chips" style="margin-top:8px"><button data-hr="7">شروق</button><button data-hr="12">ظهر</button><button data-hr="16">عصر</button><button data-hr="18.5">غروب</button><button data-hr="20">ليل</button></div>
-    <h4>جودة العرض</h4>${chips('q',[['high','عالية'],['low','خفيفة (آيباد/موبايل قديم)']],ST.q)}
+    <h4>جودة العرض</h4>${chips('q',[['high','عالية'],['mid','متوسطة'],['low','خفيفة']],ST.q)}
     <div class="note">لو الحركة بطيئة اختار «خفيفة».</div>
     <h4>العدسة</h4>${sl('fov','زاوية الرؤية',P.fov,50,100,1,'°')}${sl('eye','ارتفاع العين',P.eye,1.0,2.0,.05,' م')}`;
   }else if(tab==='dims'){
@@ -742,13 +775,14 @@ $('body').addEventListener('click',e=>{
 $('body').addEventListener('change',e=>{
   const t=e.target;
   if(t.id==='fsel'){selectItem(t.value||null);return}
-  if(t.dataset.t){ST[t.dataset.t]=t.checked;if(t.dataset.t==='lamps')setTime();else if(t.dataset.t==='flab'||t.dataset.t==='fdir'){refurnish()}else rebuild();if(t.dataset.t==='labels')renderLabels();dirty()}
+  if(t.dataset.t){ST[t.dataset.t]=t.checked;if(t.dataset.t==='lamps')setTime();else if(t.dataset.t==='flab'||t.dataset.t==='fdir'){refurnish()}else if(['inv','autoLevel','spin'].includes(t.dataset.t)){$('oSpin').classList.toggle('on',ST.spin)}else rebuild();if(t.dataset.t==='labels')renderLabels();dirty()}
   if(t.dataset.p){PR[t.dataset.p]=+t.value;try{localStorage.setItem('prop:'+APT+':pr',JSON.stringify(PR))}catch(e){}calcTot()}
 });
 $('body').addEventListener('input',e=>{
   const t=e.target;if(t.dataset.p){PR[t.dataset.p]=+t.value;calcTot();return}
-  if(!t.dataset.s)return;const k=t.dataset.s,v=+t.value;$('v_'+k).textContent=v.toFixed(t.step<1?2:0)+(k==='north'?'°':k==='fov'?'°':k==='hour'?'':' م');
+  if(!t.dataset.s)return;const k=t.dataset.s,v=+t.value;$('v_'+k).textContent=v.toFixed(t.step<1?2:0)+(k==='north'?'°':k==='fov'?'°':k==='hour'?'':k==='speed'?' م/ث':k==='sens'?'×':' م');
   if(k==='hour'){ST.hour=v;setTime()}else if(k==='north'){ST.north=v;setTime()}else if(k==='fov'){P.fov=v;applyCam()}else if(k==='eye'){P.eye=v;applyCam();hud()}
+  else if(k==='speed'||k==='sens'){ST[k]=v}
   else{P[k]=v;clearTimeout(rbT);rbT=setTimeout(rebuild,250)}dirty();
 });
 let rbT=0;function rebuild(){build();applyCam()}
@@ -778,17 +812,20 @@ $('bShot').onclick=()=>{renderer.render(scene,cam);$('shotImg').src=canvas.toDat
 $('shotX').onclick=()=>$('shot').classList.remove('open');
 
 /* ================= start ================= */
-function applyQuality(){const hi=ST.q==='high';renderer.setPixelRatio(Math.min(devicePixelRatio||1,hi?2:1));sun.shadow.mapSize.set(hi?2048:1024,hi?2048:1024);if(sun.shadow.map){sun.shadow.map.dispose();sun.shadow.map=null}resize()}
+function applyQuality(){const q=ST.q;renderer.setPixelRatio(Math.min(devicePixelRatio||1,q==='high'?2:q==='mid'?1.5:1));const ss=q==='high'?2048:1024;sun.shadow.mapSize.set(ss,ss);if(sun.shadow.map){sun.shadow.map.dispose();sun.shadow.map=null}
+  const sh=q!=='low';if(renderer.shadowMap.enabled!==sh){renderer.shadowMap.enabled=sh;scene.traverse(o=>{if(o.material)(Array.isArray(o.material)?o.material:[o.material]).forEach(m=>{m.needsUpdate=true})})}resize()}
 function resize(){const w=innerWidth,h=innerHeight;renderer.setSize(w,h,false);cam.aspect=w/h;cam.updateProjectionMatrix()}
 addEventListener('resize',resize);
 function applyModel(m){MODEL=m;Object.assign(P,m.params||{});ROOMS=m.rooms;RM=Object.fromEntries(ROOMS.map(r=>[r.id,r]));WALLS=m.walls;loadEdits();applyEdits()}
+let hudN=0,pAcc=0,pN=0,pDown=0;const pStart=performance.now();
+function perf(raw){if(performance.now()-pStart<5000||raw>.5||document.hidden)return;pAcc+=raw;pN++;if(pN>=75){const avg=pAcc/pN;pAcc=0;pN=0;if(avg>.04&&ST.q!=='low'&&pDown<2){pDown++;ST.q=ST.q==='high'?'mid':'low';applyQuality();rebuild();save();toast('الجهاز كان بيهنّج شوية، فنزّلت الجودة لـ «'+(ST.q==='mid'?'متوسطة':'خفيفة')+'» علشان الحركة تسلس. تغيّرها من «التحكم والأداء».')}}}
 function boot(){
   lightsInit();setupEnv();makeSky();skyline();applyQuality();build();renderTabs();
   setMode('walk');pos.set(8.45,P.eye,7.6);yaw=-.55;applyCam();hud();
   if(innerWidth<760)sheetOpen(false);
   let last=performance.now();
-  (function loop(now){requestAnimationFrame(loop);const dt=Math.min(.05,(now-last)/1000);last=now;step(dt);applyCam();if(mode==='walk'&&(mv.x||mv.y))hud();if(boxHelper)boxHelper.update();updateLabels();renderer.render(scene,cam)})(last);
-  window.__walk={wallOp,wallAction,OPINFO,get WALLS(){return WALLS},get ROOMS(){return ROOMS},setSel:(w,o)=>{selWall=w;selOp=o||null;wallHL();renderWallPanel()},ST,P,goPreset,setMode,rebuild,get Q(){return Q},cam,scene,get FURN(){return FURN},get edits(){return edits},selectItem,nudge,rotItem,addItem,delItem,orbit,focusRoom,orbitZoom,get mode(){return mode},enterHere,refurnish,furnMap};
+  (function loop(now){requestAnimationFrame(loop);const raw=(now-last)/1000,dt=Math.min(.05,raw);last=now;perf(raw);step(dt);drawMini();applyCam();if(mode==='walk'&&(mv.x||mv.y||glide||ST.spin||(++hudN%10===0)))hud();if(boxHelper)boxHelper.update();updateLabels();renderer.render(scene,cam)})(last);
+  window.__walk={get pitch(){return pitch},set pitch(v){pitch=v},get pos(){return pos},get yaw(){return yaw},get glide(){return glide},toast,wallOp,wallAction,OPINFO,get WALLS(){return WALLS},get ROOMS(){return ROOMS},setSel:(w,o)=>{selWall=w;selOp=o||null;wallHL();renderWallPanel()},ST,P,goPreset,setMode,rebuild,get Q(){return Q},cam,scene,get FURN(){return FURN},get edits(){return edits},selectItem,nudge,rotItem,addItem,delItem,orbit,focusRoom,orbitZoom,get mode(){return mode},enterHere,refurnish,furnMap};
 }
 (window.MODEL_INLINE?Promise.resolve(window.MODEL_INLINE):fetch('../apartments/'+APT+'/model.json').then(r=>{if(!r.ok)throw new Error('HTTP '+r.status);return r.json()}))
  .then(m=>{applyModel(m);boot()}).catch(e=>{const x=$('err');x.style.display='flex';x.textContent='ما قدرتش أحمّل بيانات العقار: '+e.message});

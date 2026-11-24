@@ -21,6 +21,8 @@ Private repo for the family's properties (apartment now; villa and chalet later)
 
 - Wall panel also has «حط عفش على الحيطة دي»: picks a side (room) and a type (TV unit, bookcase, wardrobe, sofa, console, mirror, desk, bed); the item is snapped back-to-wall at the last tapped point (`snapItemToWall` using the item's bounding box) and then selected for moving. Furniture panel has «ألصقه بأقرب حيطة» and «عدّل الزاوية»; items added "in front of me" are rotated to a multiple of 90°.
 
+- Room walls are numbered 1 (top on the plan), 2 (right), 3 (bottom), 4 (left), clockwise. With an item selected, numbers show on its room's walls; «انقلها لجدار» (or tapping a number) moves it back-to-wall facing into the room (`moveToRoomWall(n, center)`); «وسّطها» centers it on the nearest wall.
+
 ## Controls (walk mode)
 - Left stick (default: left/right turn in place, up/down walk; option "strafe"; deadzone + curve, speed + turn-speed sliders), drag to look (sensitivity/invert), «👁 أفقي» levels the view, ⟲/⟳ 90° snap turns, 🔄 auto 360° (separate left/right buttons, speed slider, any touch stops it), double-tap floor = glide there, minimap (bottom-left) shows position/heading and teleports on tap, auto-level pitch while walking. Quality high/mid/low with auto-downgrade when the average frame time is >40 ms.
 

@@ -23,6 +23,10 @@ Private repo for the family's properties (apartment now; villa and chalet later)
 
 - Room walls are numbered 1 (top on the plan), 2 (right), 3 (bottom), 4 (left), clockwise. With an item selected, numbers show on its room's walls; «انقلها لجدار» (or tapping a number) moves it back-to-wall facing into the room (`moveToRoomWall(n, center)`); «وسّطها» centers it on the nearest wall.
 
+## Sync (single source of truth = this repo)
+- Edits made in the viewer are stored per browser (`localStorage`), so the GitHub Pages page and the Claude artifact do NOT share them. Tab «المزامنة»: «احفظ تعديلاتي في المستودع» bakes furniture + wall/opening edits into `apartments/<id>/model.json` via the GitHub contents API (fine-grained PAT, Contents: read/write on this repo only, stored in `localStorage` as `prop:ghtoken`) and clears the local edits; «حدّث من المستودع» pulls the latest model. The artifact (inlined model, sandboxed network) cannot call GitHub, so the Pages page is the working app and the artifact is a copy that must be republished after each push.
+- When the user pastes «انسخ تعديلاتي» output, apply it to `model.json` (furniture `x/z/ry`, deletions, additions, wall ops) and push.
+
 ## Controls (walk mode)
 - Left stick (default: left/right turn in place, up/down walk; option "strafe"; deadzone + curve, speed + turn-speed sliders), drag to look (sensitivity/invert), «👁 أفقي» levels the view, ⟲/⟳ 90° snap turns, 🔄 auto 360° (separate left/right buttons, speed slider, any touch stops it), double-tap floor = glide there, minimap (bottom-left) shows position/heading and teleports on tap, auto-level pitch while walking. Quality high/mid/low with auto-downgrade when the average frame time is >40 ms.
 

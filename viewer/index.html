@@ -566,6 +566,35 @@ function wallHL(){
   wHL=new T.Mesh(new T.BoxGeometry(sx,sy,sz),new T.MeshBasicMaterial({color:0xffb703,transparent:true,opacity:.38,depthTest:false}));wHL.position.set(cx,cy,cz);wHL.renderOrder=30;wallGrp.add(wHL)}
 function wallSides(w){const m=w.ax==='v'?[w.p,(w.a+w.b)/2]:[(w.a+w.b)/2,w.p],off=w.t/2+.1;
   const P1=w.ax==='v'?roomAt(m[0]+off,m[1]):roomAt(m[0],m[1]+off),N1=w.ax==='v'?roomAt(m[0]-off,m[1]):roomAt(m[0],m[1]-off);return{P:P1,N:N1}}
+/* ===== sync with the GitHub repo (single source of truth) ===== */
+const GH={owner:'powerflash1000',repo:'properties',branch:'main'};
+const ghPath=()=>'apartments/'+APT+'/model.json',ghUrl=()=>'https://api.github.com/repos/'+GH.owner+'/'+GH.repo+'/contents/'+ghPath();
+function bakedModel(){
+  const m=JSON.parse(JSON.stringify(MODEL));
+  m.furniture=JSON.parse(JSON.stringify(FURN));
+  m.walls=WALLS.filter(w=>!w.removed).map(w=>{const c=JSON.parse(JSON.stringify(w));delete c.removed;if(c.op)c.op.forEach(o=>{delete o.id});if(c.op&&!c.op.length)delete c.op;return c});
+  m.rooms=ROOMS.map(r=>({id:r.id,n:r.n,k:r.k,x0:r.x0,x1:r.x1,z0:r.z0,z1:r.z1}));
+  return m}
+function syncMsg(t,ok){const el=document.getElementById('syncMsg');if(el){el.textContent=t;el.style.color=ok===false?'var(--bad)':ok?'var(--accent)':''}}
+function adoptModel(m){edits={mod:{},del:[],add:[],w:[]};saveEdits();selId=null;selWall=null;selOp=null;applyModel(m);rebuild();wallHL();renderTabs();renderLabels()}
+async function syncPull(){
+  syncMsg('بحمّل آخر نسخة من المستودع…');
+  try{const r=await fetch(ghUrl()+'?ref='+GH.branch+'&t='+Date.now(),{headers:{Accept:'application/vnd.github.raw'}});if(!r.ok)throw new Error('HTTP '+r.status);
+    const m=await r.json();adoptModel(m);syncMsg('اتحدّث من المستودع. تعديلاتك المحلية اتمسحت لأنها بقت جزء من النسخة.',true)}
+  catch(e){syncMsg('معرفتش أجيب النسخة: '+e.message+(window.MODEL_INLINE?' (النسخة دي مقفولة على النت، استخدم صفحة GitHub)':''),false)}}
+async function syncSave(){
+  const tok=(localStorage.getItem('prop:ghtoken')||'').trim();
+  if(!tok){syncMsg('اكتب مفتاح GitHub الأول.',false);return}
+  syncMsg('بحفظ في المستودع…');
+  try{
+    const m=bakedModel(),h={Authorization:'Bearer '+tok,Accept:'application/vnd.github+json'};
+    const g=await fetch(ghUrl()+'?ref='+GH.branch+'&t='+Date.now(),{headers:h});if(!g.ok)throw new Error(g.status===401||g.status===403?'المفتاح غلط أو ملوش صلاحية على المستودع (HTTP '+g.status+')':g.status===404?'الملف أو المستودع مش موجود (404)':'HTTP '+g.status);
+    const cur=await g.json();
+    const body={message:'Update '+APT+' from the viewer',content:btoa(unescape(encodeURIComponent(JSON.stringify(m,null,1)))),sha:cur.sha,branch:GH.branch};
+    const r=await fetch(ghUrl(),{method:'PUT',headers:Object.assign({'Content-Type':'application/json'},h),body:JSON.stringify(body)});
+    if(!r.ok){const t=await r.text();throw new Error(r.status===409?'فيه تعديل أحدث على المستودع، دوس «حدّث من المستودع» الأول (409)':r.status===401||r.status===403?'المفتاح ملوش صلاحية كتابة (HTTP '+r.status+')':'HTTP '+r.status+' '+t.slice(0,120))}
+    adoptModel(m);syncMsg('اتحفظ في المستودع ✔ الموقع بيتحدّث لكل الأجهزة بعد دقيقة أو اتنين.',true)}
+  catch(e){syncMsg('معرفتش أحفظ: '+e.message+(window.MODEL_INLINE?' (نسخة Claude مقفولة على النت، الحفظ بيشتغل من صفحة GitHub بس)':''),false)}}
 /* ===== room walls 1-4 (1 top, 2 right, 3 bottom, 4 left on the plan) ===== */
 const WN_NAMES={1:'فوق',2:'يمين',3:'تحت',4:'شمال'};
 const clampN=(v,a,b)=>a>b?(a+b)/2:Math.max(a,Math.min(b,v));
@@ -701,7 +730,7 @@ function updateLabels(){
 }
 
 /* ================= UI panels ================= */
-const TABS=[['furn','العفش'],['walls','الحيطان والفتحات'],['ctrl','التحكم والأداء'],['design','التصميم'],['light','الإضاءة والوقت'],['dims','الأبعاد'],['qty','الكميات والتكلفة'],['need','محتاجه منك']];
+const TABS=[['sync','المزامنة'],['furn','العفش'],['walls','الحيطان والفتحات'],['ctrl','التحكم والأداء'],['design','التصميم'],['light','الإضاءة والوقت'],['dims','الأبعاد'],['qty','الكميات والتكلفة'],['need','محتاجه منك']];
 let tab='design';
 const AREA_MAIN={liv:'معيشة',din:'سفرة'};
 function chips(key,opts,cur,fn){return`<div class="chips">${opts.map(([v,l])=>`<button data-k="${key}" data-v="${v}" class="${String(cur)===String(v)?'on':''}">${l}</button>`).join('')}</div>`}
@@ -710,7 +739,17 @@ function sl(key,label,v,min,max,st,unit){return`<div class="row"><label for="s_$
 function renderTabs(){
   $('tabs').innerHTML=TABS.map(([k,t])=>`<button data-tab="${k}" class="${tab===k?'on':''}">${t}</button>`).join('');
   const b=$('body');
-  if(tab==='ctrl'){b.innerHTML=`<h4>العصا (الدايرة)</h4>${chips('stickMode',[['turn','يمين/شمال = لفّ حوالين نفسك'],['strafe','يمين/شمال = مشي جانبي']],ST.stickMode)}${sl('turn','سرعة اللفّ بالعصا',ST.turn||1.6,.5,4,.1,'')}
+  if(tab==='sync'){const tok=localStorage.getItem('prop:ghtoken')||'';
+    b.innerHTML=`<div class="note">أي تعديل بتعمله هنا (عفش، حيطان، فتحات) بيتحفظ على <b>الجهاز والمتصفح ده بس</b>. علشان يظهر على كل الأجهزة وعلى نسخة GitHub، احفظه في المستودع.</div>
+    ${window.MODEL_INLINE?'<div class="note" style="margin-top:8px;color:var(--amber)">إنت دلوقتي في نسخة Claude، وهي مقفولة على النت، فالحفظ والتحديث مش هيشتغلوا هنا. شغّل نفس الشغل من صفحة GitHub: powerflash1000.github.io/properties/viewer/index.html</div>':''}
+    <h4>مفتاح GitHub (مرة واحدة)</h4>
+    <div class="row"><label for="ghtok">المفتاح</label><input type="password" id="ghtok" value="${esc2(tok)}" placeholder="github_pat_…" autocomplete="off" style="flex:2 1 220px;font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:7px"></div>
+    <div class="chips"><button data-sync="save">احفظ تعديلاتي في المستودع</button><button data-sync="pull">حدّث من المستودع</button></div>
+    <div class="note" id="syncMsg" style="margin-top:8px"></div>
+    <h4>إزاي تعمل المفتاح</h4>
+    <div class="note">1) افتح github.com/settings/personal-access-tokens/new<br>2) الاسم: properties-viewer، والمدة: 90 يوم.<br>3) Repository access: <b>Only select repositories</b> واختار <b>properties</b>.<br>4) Permissions → Repository permissions → <b>Contents: Read and write</b>.<br>5) Generate token وانسخه وحطه فوق.<br>المفتاح بيتحفظ على جهازك بس. تقدر تمسحه من GitHub في أي وقت.</div>
+    <h4>من غير مفتاح</h4><div class="note">اضغط «انسخ تعديلاتي» في تبويب العفش وابعتها لـ Claude في الشات، وهو يثبّتها في المستودع.</div>`}
+  else if(tab==='ctrl'){b.innerHTML=`<h4>العصا (الدايرة)</h4>${chips('stickMode',[['turn','يمين/شمال = لفّ حوالين نفسك'],['strafe','يمين/شمال = مشي جانبي']],ST.stickMode)}${sl('turn','سرعة اللفّ بالعصا',ST.turn||1.6,.5,4,.1,'')}
     <h4>الحركة</h4>${sl('speed','سرعة المشي',ST.speed,.5,4,.1,' م/ث')}${sl('sens','حساسية النظر',ST.sens,.3,2.5,.1,'×')}
     ${tg('inv','عكس اتجاه النظر لفوق وتحت',ST.inv)}${tg('autoLevel','النظر يرجع أفقي لوحده وانت ماشي',ST.autoLevel)}<h4>لفّة 360° تلقائية (للتفرج)</h4>${chips('spin',[[0,'واقف'],[1,'لفّ يمين'],[-1,'لفّ شمال']],+ST.spin||0)}${sl('spinSpeed','سرعة اللفّة',ST.spinSpeed||.45,.1,1.5,.05,'')}
     <h4>الأداء</h4>${chips('q',[['high','عالية'],['mid','متوسطة'],['low','خفيفة']],ST.q)}
@@ -804,6 +843,7 @@ const dirty=()=>{save()};
 $('body').addEventListener('click',e=>{
   const b=e.target.closest('button');if(!b)return;
   if(b.dataset.towall){moveToRoomWall(+b.dataset.towall);return}
+  if(b.dataset.sync){if(b.dataset.sync==='save')syncSave();else syncPull();return}
   if(b.dataset.wput!=null){putOnWall(+b.dataset.wput);return}
   if(b.dataset.wside){wSide=+b.dataset.wside;renderWallPanel();return}
   if(b.dataset.w){wallAction(b.dataset.w);return}
@@ -832,7 +872,8 @@ $('body').addEventListener('change',e=>{
   if(t.dataset.p){PR[t.dataset.p]=+t.value;try{localStorage.setItem('prop:'+APT+':pr',JSON.stringify(PR))}catch(e){}calcTot()}
 });
 $('body').addEventListener('input',e=>{
-  const t=e.target;if(t.dataset.p){PR[t.dataset.p]=+t.value;calcTot();return}
+  const t=e.target;
+  if(t.id==='ghtok'){try{localStorage.setItem('prop:ghtoken',t.value.trim())}catch(x){}return}if(t.dataset.p){PR[t.dataset.p]=+t.value;calcTot();return}
   if(!t.dataset.s)return;const k=t.dataset.s,v=+t.value;$('v_'+k).textContent=v.toFixed(t.step<1?2:0)+(k==='north'?'°':k==='fov'?'°':k==='hour'?'':k==='speed'?' م/ث':k==='sens'?'×':k==='spinSpeed'||k==='turn'?'':' م');
   if(k==='hour'){ST.hour=v;setTime()}else if(k==='north'){ST.north=v;setTime()}else if(k==='fov'){P.fov=v;applyCam()}else if(k==='eye'){P.eye=v;applyCam();hud()}
   else if(k==='speed'||k==='sens'||k==='spinSpeed'||k==='turn'){ST[k]=v}
@@ -878,7 +919,7 @@ function boot(){
   if(innerWidth<760)sheetOpen(false);
   let last=performance.now();
   (function loop(now){requestAnimationFrame(loop);const raw=(now-last)/1000,dt=Math.min(.05,raw);last=now;perf(raw);step(dt);drawMini();applyCam();if(mode==='walk'&&(mv.x||mv.y||glide||ST.spin||(++hudN%10===0)))hud();if(boxHelper)boxHelper.update();updateLabels();renderer.render(scene,cam)})(last);
-  window.__walk={moveToRoomWall,putOnWall,snapItemToWall,itemById,get selId(){return selId},get selWall(){return selWall},get lastHit(){return lastHit},get pitch(){return pitch},set pitch(v){pitch=v},get pos(){return pos},get yaw(){return yaw},get glide(){return glide},toast,wallOp,wallAction,OPINFO,get WALLS(){return WALLS},get ROOMS(){return ROOMS},setSel:(w,o)=>{selWall=w;selOp=o||null;wallHL();renderWallPanel()},ST,P,goPreset,setMode,rebuild,get Q(){return Q},cam,scene,get FURN(){return FURN},get edits(){return edits},selectItem,nudge,rotItem,addItem,delItem,orbit,focusRoom,orbitZoom,get mode(){return mode},enterHere,refurnish,furnMap};
+  window.__walk={bakedModel,syncSave,syncPull,moveToRoomWall,putOnWall,snapItemToWall,itemById,get selId(){return selId},get selWall(){return selWall},get lastHit(){return lastHit},get pitch(){return pitch},set pitch(v){pitch=v},get pos(){return pos},get yaw(){return yaw},get glide(){return glide},toast,wallOp,wallAction,OPINFO,get WALLS(){return WALLS},get ROOMS(){return ROOMS},setSel:(w,o)=>{selWall=w;selOp=o||null;wallHL();renderWallPanel()},ST,P,goPreset,setMode,rebuild,get Q(){return Q},cam,scene,get FURN(){return FURN},get edits(){return edits},selectItem,nudge,rotItem,addItem,delItem,orbit,focusRoom,orbitZoom,get mode(){return mode},enterHere,refurnish,furnMap};
 }
 (window.MODEL_INLINE?Promise.resolve(window.MODEL_INLINE):fetch('../apartments/'+APT+'/model.json').then(r=>{if(!r.ok)throw new Error('HTTP '+r.status);return r.json()}))
  .then(m=>{applyModel(m);boot()}).catch(e=>{const x=$('err');x.style.display='flex';x.textContent='ما قدرتش أحمّل بيانات العقار: '+e.message});

@@ -107,7 +107,7 @@ if(!T){const e=$('err');e.style.display='flex';e.textContent='ما قدرتش أ
 /* ================= parameters & state ================= */
 const APT=new URLSearchParams(location.search).get('apt')||'apt1';
 const P={ceil:2.7,doorH:2.3,doorW:1.0,balc:1.5,sill:.9,eye:1.6,fov:72};
-const ST={stone:'crema',tvimg:'sunset',chand:'rings',lampc:'warm',pal:1,main:'porcelain',bed:'wood',cove:true,spots:true,accent:true,curtains:true,kitOpen:false,doorsOpen:true,hour:16,north:270,light:'studio',tile:.6,cor:'wood',door:'brown',lamps:false,labels:true,q:(/iPad|iPhone|Android|Mobile/i.test(navigator.userAgent)||navigator.maxTouchPoints>1)?'mid':'high',speed:1.6,sens:1,inv:false,autoLevel:true,spin:0,spinSpeed:.45,stickMode:'turn',turn:1.6,cut:false,furn:true,plants:true,fdir:false,flab:false,wnum:false,
+const ST={expo:1,stone:'crema',tvimg:'sunset',chand:'rings',lampc:'warm',pal:1,main:'porcelain',bed:'wood',cove:true,spots:true,accent:true,curtains:true,kitOpen:false,doorsOpen:true,hour:16,north:270,light:'studio',tile:.6,cor:'wood',door:'brown',lamps:false,labels:true,q:(/iPad|iPhone|Android|Mobile/i.test(navigator.userAgent)||navigator.maxTouchPoints>1)?'mid':'high',speed:1.6,sens:1,inv:false,autoLevel:true,spin:0,spinSpeed:.45,stickMode:'turn',turn:1.6,cut:false,furn:true,plants:true,fdir:false,flab:false,wnum:false,
   lay:{liv:0,din:0,kit:0,b1:0,b2:0}};
 const PALS=[
  {n:'ساحل إسكندرية',w:'#eef1f0',a:'#7fa6b5',f:'#d8d2c6',wd:'#c9a77c',m:'#bfc5c8'},
@@ -117,6 +117,7 @@ const PALS=[
  {n:'فحمي وجوز',w:'#4a4e52',a:'#b89b72',f:'#8b6b4f',wd:'#5b4331',m:'#1c1c1c'},
  {n:'سكندنافي فاتح',w:'#f4f3f0',a:'#d9b99b',f:'#e3d3bc',wd:'#c9a77c',m:'#4a4f55'},
  {n:'طيني دافئ',w:'#e8d8c8',a:'#b5654a',f:'#c9b79c',wd:'#5c3d2e',m:'#7a5c45'},
+ {n:'لوكس بيج دافئ (ستايل الصورة)',w:'#efe6d6',a:'#b79b7a',f:'#e6d8bd',wd:'#8a6a4a',m:'#c8a24a'},
 ];
 try{const s=JSON.parse(localStorage.getItem('prop:'+APT+':st')||'null');if(s){Object.assign(ST,s,{lay:Object.assign(ST.lay,s.lay||{})});if(s.P)Object.assign(P,s.P)}}catch(e){}
 const save=()=>{try{localStorage.setItem('prop:'+APT+':st',JSON.stringify(Object.assign({},ST,{P})))}catch(e){}};
@@ -143,7 +144,7 @@ const rnd=(()=>{let s=7;return()=>(s=(s*16807)%2147483647)/2147483647})();
 /* ----- procedural textures ----- */
 function ctex(draw,size=512){const c=document.createElement('canvas');c.width=c.height=size;draw(c.getContext('2d'),size);const t=new T.CanvasTexture(c);t.wrapS=t.wrapT=T.RepeatWrapping;t.encoding=T.sRGBEncoding;t.anisotropy=8;return t}
 const texCache=new Map();
-const STONES=[['crema','كريما مارفل بيج','#e6d8bd','#b79b6a'],['carrara','كرارا أبيض','#eeedea','#9aa0a6'],['calacatta','كالاكاتا ذهبي','#f3efe6','#b8975a'],['marquina','ماركينا أسود','#1d1e21','#dcdcdc'],['grey','جراي','#b7babe','#6c7076'],['emerald','أخضر زمردي','#2c4a3d','#c9d8c3'],['travertine','ترافرتين','#d9c8a8','#a08a63'],['rosa','وردي بورتغال','#e4c9bd','#b98b78']];
+const STONES=[['crema','كريما مارفل بيج','#dcc7a0','#a8884f'],['carrara','كرارا أبيض','#eeedea','#9aa0a6'],['calacatta','كالاكاتا ذهبي','#f3efe6','#b8975a'],['marquina','ماركينا أسود','#1d1e21','#dcdcdc'],['grey','جراي','#b7babe','#6c7076'],['emerald','أخضر زمردي','#2c4a3d','#c9d8c3'],['travertine','ترافرتين','#d9c8a8','#a08a63'],['rosa','وردي بورتغال','#e4c9bd','#b98b78']];
 const stoneDef=()=>STONES.find(x=>x[0]===ST.stone)||STONES[0];
 function drawMarble(g,s,base,vein){g.fillStyle=base;g.fillRect(0,0,s,s);
   for(let i=0;i<60;i++){g.fillStyle='rgba(255,255,255,'+rnd()*.05+')';g.beginPath();g.arc(rnd()*s,rnd()*s,20+rnd()*60,0,7);g.fill()}
@@ -182,7 +183,7 @@ function floorTex(kind,base){
 }
 function floorMat(kind,base,w,d){
   const t=floorTex(kind,base).clone();t.needsUpdate=true;
-  const tile=kind==='wood'?1.0:ST.tile;t.repeat.set(w/tile,d/tile);
+  const tile=kind==='wood'?1.0:kind==='marble'?Math.max(1.6,ST.tile):ST.tile;t.repeat.set(w/tile,d/tile);
   return new T.MeshStandardMaterial({map:t,roughness:kind==='marble'?.18:kind==='wood'?.45:.28,metalness:0,envMapIntensity:kind==='wood'?.3:.5});
 }
 
@@ -319,6 +320,13 @@ function buildFloors(){
 const F=()=>{const p=pal();return{wood:mat(p.wd,.55),woodL:mat(mix(p.wd,'#d8b98e',.5),.6),fab:mat(mix(p.a,'#ffffff',.25),.95),fab2:mat(mix(p.a,'#777777',.2),.95),white:mat('#f4f2ee',.7),dark:mat('#23262b',.5),metal:mat(p.m,.3,.9),leaf:mat('#4f7a3a',.9),pot:mat('#d6cfc3',.7),glass:glassM,rug:mat(mix(p.a,p.w,.6),1),skin:mat('#2b2e33',.4),counter:stoneMat(1),cab:mat(mix(p.w,'#ffffff',.4),.55),cabD:mat(mix(p.wd,'#000000',.0),.6),tile:mat('#dfe3e6',.4),steel:mat('#b9bec6',.3,.9),bedl:mat('#f1efea',.9),duvet:mat(mix(p.a,'#ffffff',.5),.95)}};
 function placeP(g,x,z,ry=0){if(ST.plants===false)return null;return place(g,x,z,ry)}
 function place(g,x,z,ry=0){g.position.set(x,0,z);g.rotation.y=ry;furnGrp.add(g);return g}
+function sofaL(w=3.0,d=1.7,m){const g=new T.Group(),f=F();m=m||f.fab;const sd=.95;
+  box(w,.1,sd,0,.08,-d/2+sd/2,f.dark,0,g);box(sd,.1,d,w/2-sd/2,.08,0,f.dark,0,g);
+  sbox(w,.26,sd-.06,0,.16,-d/2+sd/2,m,0,g,.05);sbox(sd-.06,.26,d-sd,w/2-sd/2,.16,sd/2,m,0,g,.05);
+  sbox(w,.52,.24,0,.4,-d/2+.12,m,0,g,.07);sbox(.24,.52,d,w/2-.12,.4,0,m,0,g,.07);sbox(.2,.34,sd,-w/2+.1,.42,-d/2+sd/2,m,0,g,.06);
+  const n=Math.max(2,Math.round((w-sd)/.8));for(let i=0;i<n;i++)sbox((w-sd-.3)/n-.02,.15,sd-.4,-w/2+.2+((w-sd-.3)/n)*(i+.5),.5,-d/2+.5,m,0,g,.06);
+  sbox(sd-.4,.15,d-sd-.1,w/2-sd/2,.5,sd/2-.05,m,0,g,.06);
+  for(const [x,z] of[[-w/2+.55,-d/2+.3],[w/2-.6,-d/2+.3],[w/2-.35,d/2-.35]])sbox(.42,.4,.14,x,.55,z,f.fab2,0,g,.06).rotation.x=-.2;return g}
 function sofa(w=2.2,d=.95,m){const g=new T.Group(),f=F();m=m||f.fab;
   box(w,.1,d,0,.08,0,f.dark,0,g);sbox(w,.26,d-.06,0,.16,0,m,0,g,.05);sbox(w,.52,.24,0,.4,-d/2+.12,m,0,g,.07);
   sbox(.2,.34,d,-w/2+.1,.42,0,m,0,g,.06);sbox(.2,.34,d,w/2-.1,.42,0,m,0,g,.06);
@@ -458,7 +466,7 @@ function shower(w=.9,d=.9){const g=new T.Group(),f=F();box(w,.06,d,0,0,0,f.white
 /* ================= furniture (data-driven) ================= */
 const mirrorM=()=>mat('#e4eef3',.08,0,{emissive:'#7f93a1',emissiveIntensity:.45});
 const BUILD={
- sofa:a=>sofa(a.w||2.2,a.d||.95),armchair:()=>armchair(),ctable:a=>ctable(a.w||1.1,a.d||.65,a.h||.4),tvUnit:a=>tvUnit(a.w||2,a),tv:a=>{const g=new T.Group(),t=tvObj(a.inch||65,a.brand||'samsung',a.mount||'wall');t.position.y=a.y==null?(a.mount==='stand'?.8:1.0):a.y;g.add(t);return g},fridge:a=>fridgeObj(a),hood:a=>hoodObj(a),rug:a=>rug(a.w||2,a.d||1.5),
+ sofa:a=>sofa(a.w||2.2,a.d||.95),sofaL:a=>sofaL(a.w||3,a.d||1.7),armchair:()=>armchair(),ctable:a=>ctable(a.w||1.1,a.d||.65,a.h||.4),tvUnit:a=>tvUnit(a.w||2,a),tv:a=>{const g=new T.Group(),t=tvObj(a.inch||65,a.brand||'samsung',a.mount||'wall');t.position.y=a.y==null?(a.mount==='stand'?.8:1.0):a.y;g.add(t);return g},fridge:a=>fridgeObj(a),hood:a=>hoodObj(a),rug:a=>rug(a.w||2,a.d||1.5),
  chair:()=>chair(),dtable:a=>dtable(a.w||2.4,a.d||1,!!a.round),chandelier:a=>chandelier(a.style),ac:a=>{const g=new T.Group(),u=acObj(a);u.position.y=a.y==null?(a.kind==='floor'?0:a.kind==='cassette'?P.ceil-.2:2.15):a.y;g.add(u);return g},bed:a=>bed(a.w||1.6,a.l||2,a.hb||1),nstand:()=>nstand(),
  wardrobe:a=>wardrobe(a.w||2,a.d||.6,a.h),glasswardrobe:a=>glassWardrobe(a.w||2.4,a.d||.6,a.h),glasspanel:a=>glassPanel(a.w||1.5,a.h),desk:a=>desk(a.w||1.5,a.d||.7),plant:a=>plant(a.h||1.1,a.s||1),flamp:()=>flamp(),
  curtain:a=>curtain(a.w||1.6,0,0,!!a.vert),toilet:()=>toilet(),vanity:a=>vanity(a.w||.9),shower:a=>shower(a.w||.9,a.d||.9),
@@ -473,8 +481,8 @@ const BUILD={
  tbl:()=>{const g=new T.Group(),f=F();cyl(.35,.04,0,.7,0,f.metal,g);cyl(.02,.7,0,0,0,f.metal,g,6);return g},
  mat:()=>{const g=new T.Group();box(.9,.015,.6,0,0,0,mat('#5b4a3a',1),0,g);return g},
 };
-const TYPE_NAMES={sofa:'كنبة',armchair:'فوتيل',ctable:'ترابيزة',tvUnit:'وحدة تلفزيون',rug:'سجادة',chair:'كرسي',dtable:'ترابيزة سفرة',chandelier:'نجفة',bed:'سرير',nstand:'كومودينو',ac:'تكييف',tv:'تلفزيون',fridge:'تلاجة',hood:'شفاط',wardrobe:'دولاب',glasswardrobe:'دولاب زجاج مضيء',glasspanel:'حاجز زجاج',desk:'مكتب',plant:'نبتة',flamp:'أباجورة'};
-const ADDABLE=['sofa','armchair','ctable','bed','tv','fridge','ac','hood','wardrobe','glasswardrobe','glasspanel','desk','chair','dtable','plant','flamp','rug','tvUnit','nstand','chandelier'];
+const TYPE_NAMES={sofa:'كنبة',sofaL:'كنبة L',armchair:'فوتيل',ctable:'ترابيزة',tvUnit:'وحدة تلفزيون',rug:'سجادة',chair:'كرسي',dtable:'ترابيزة سفرة',chandelier:'نجفة',bed:'سرير',nstand:'كومودينو',ac:'تكييف',tv:'تلفزيون',fridge:'تلاجة',hood:'شفاط',wardrobe:'دولاب',glasswardrobe:'دولاب زجاج مضيء',glasspanel:'حاجز زجاج',desk:'مكتب',plant:'نبتة',flamp:'أباجورة'};
+const ADDABLE=['sofa','armchair','ctable','bed','sofaL','tv','fridge','ac','hood','wardrobe','glasswardrobe','glasspanel','desk','chair','dtable','plant','flamp','rug','tvUnit','nstand','chandelier'];
 const ADD_ARGS={sofa:{w:2.2},ctable:{w:1,d:.6},bed:{w:1.6,l:2},wardrobe:{w:2},glasswardrobe:{w:2.4},glasspanel:{w:1.5},desk:{w:1.4,d:.7},dtable:{w:2,d:.9},plant:{h:1.2},rug:{w:2,d:1.4},tvUnit:{w:1.6}};
 function frontArrow(g){
   const bb=new T.Box3().setFromObject(g),m=new T.MeshBasicMaterial({color:'#ffcc00',depthTest:false,transparent:true,opacity:.95});
@@ -538,7 +546,7 @@ function addItem(type){const [fx,fz]=viewFwd();const bx=mode==='walk'?pos.x+fx*1
 function roomName(x,z){const r=roomAt(x,z);return r?r.n:'برّه'}
 function updateSelInfo(){const el=document.getElementById('selInfo');if(!el)return;const it=selId&&itemById(selId);
   el.innerHTML=it?`<b>${esc2(it.name)}</b><br><span class="note">${roomName(it.x,it.z)} • X ${it.x.toFixed(2)} • Z ${it.z.toFixed(2)} • زاوية ${Math.round(((it.ry||0)*180/Math.PI+360)%360)}°</span>`:'<span class="note">اضغط على أي قطعة عفش في الشقة، أو اختارها من القايمة.</span>';updateDims()}
-const DIMS={ac:[['y','الارتفاع عن الأرض',2.15]],tv:[['y','الارتفاع عن الأرض',1.0]],hood:[['w','العرض',.9],['y','الارتفاع',1.65]],fridge:[['w','العرض',.8],['h','الارتفاع',1.85]],wardrobe:[['w','العرض',2],['d','العمق',.6],['h','الارتفاع',2.55]],glasswardrobe:[['w','العرض',2.4],['d','العمق',.6],['h','الارتفاع',2.55]],glasspanel:[['w','العرض',1.5],['h','الارتفاع',2.6]],sofa:[['w','العرض',2.2],['d','العمق',.95]],tvUnit:[['w','العرض',2]],desk:[['w','العرض',1.5],['d','العمق',.7]],dtable:[['w','العرض',2.4],['d','العمق',1]],ctable:[['w','العرض',1.1],['d','العمق',.65]],rug:[['w','العرض',2],['d','العمق',1.5]],bed:[['w','العرض',1.6],['l','الطول',2]],mirror:[['w','العرض',.8],['h','الارتفاع',1.9]],vanity:[['w','العرض',.9]],shower:[['w','العرض',.9],['d','العمق',.9]],curtain:[['w','العرض',1.6]],boxitem:[['w','العرض',1],['d','العمق',.5],['h','الارتفاع',.8]]};
+const DIMS={sofaL:[['w','العرض',3],['d','العمق',1.7]],ac:[['y','الارتفاع عن الأرض',2.15]],tv:[['y','الارتفاع عن الأرض',1.0]],hood:[['w','العرض',.9],['y','الارتفاع',1.65]],fridge:[['w','العرض',.8],['h','الارتفاع',1.85]],wardrobe:[['w','العرض',2],['d','العمق',.6],['h','الارتفاع',2.55]],glasswardrobe:[['w','العرض',2.4],['d','العمق',.6],['h','الارتفاع',2.55]],glasspanel:[['w','العرض',1.5],['h','الارتفاع',2.6]],sofa:[['w','العرض',2.2],['d','العمق',.95]],tvUnit:[['w','العرض',2]],desk:[['w','العرض',1.5],['d','العمق',.7]],dtable:[['w','العرض',2.4],['d','العمق',1]],ctable:[['w','العرض',1.1],['d','العمق',.65]],rug:[['w','العرض',2],['d','العمق',1.5]],bed:[['w','العرض',1.6],['l','الطول',2]],mirror:[['w','العرض',.8],['h','الارتفاع',1.9]],vanity:[['w','العرض',.9]],shower:[['w','العرض',.9],['d','العمق',.9]],curtain:[['w','العرض',1.6]],boxitem:[['w','العرض',1],['d','العمق',.5],['h','الارتفاع',.8]]};
 function updateDims(){updateBrand();const el=document.getElementById('dimBox');if(!el)return;const it=selId&&itemById(selId),D=it&&DIMS[it.type];
   if(!D){el.innerHTML='';return}
   const a=it.args||{};
@@ -602,6 +610,8 @@ function lightsInit(){
   const sc=sun.shadow.camera;sc.left=-18;sc.right=18;sc.top=14;sc.bottom=-14;sc.near=1;sc.far=140;sun.shadow.bias=-.0006;sun.shadow.normalBias=.04;
   scene.add(sun);scene.add(sun.target);sun.target.position.set(12.5,0,4.5);
 }
+function applyLook(){Object.assign(ST,{pal:7,main:'marble',cor:'marble',bed:'wood',stone:'crema',lamps:true,lampc:'warm',light:'studio',expo:.66,cove:true,spots:true,accent:true,curtains:true,tvimg:'sunset',chand:'crystal'});
+  save();rebuild();setTime();renderTabs();toast('اتطبّق ستايل الصورة: بيج دافئ ورخام وإضاءة دافئة')}
 function setTime(){
   if(ST.light==='studio'){studioLight();return}
   const h=ST.hour,t=Math.min(1,Math.max(0,(h-6)/13)),el=Math.max(2,64*Math.sin(Math.PI*t)),az=(90+180*t+ST.north)*Math.PI/180,e=el*Math.PI/180;
@@ -611,7 +621,7 @@ function setTime(){
   const warm=low?'#ffb070':'#fff1dc';sun.color.set(warm);sun.intensity=day?(low?1.3:2.4):0;
   const sky=day?(low?'#f0b890':'#bcd6ee'):'#0a1020';scene.background=new T.Color(sky);scene.fog=new T.Fog(sky,80,260);if(skyDome)paintSky(day?(low?'#6f95c4':'#4f8fd4'):'#05080f',day?(low?'#f7c9a0':'#dcebf7'):'#16213d');
   hemi.intensity=day?(low?.34:.5):.1;hemi.color.set(day?'#dfeaff':'#2b3a66');
-  renderer.toneMappingExposure=day?1.2:1.2;
+  renderer.toneMappingExposure=1.2*(ST.expo||1);
   const on=ST.lamps||!day||h>=18.3;
   ptLights.forEach(l=>{l.visible=on});
   glowCache&&Object.values(glowCache).forEach(m=>{m.emissiveIntensity=on?2.2:.15});
@@ -619,7 +629,7 @@ function setTime(){
 function studioLight(){
   const d=new T.Vector3(.35,.85,.4).normalize();sun.position.copy(sun.target.position).addScaledVector(d,60);sun.color.set('#ffffff');sun.intensity=1.25;
   scene.background=new T.Color('#cfe0f0');scene.fog=new T.Fog('#cfe0f0',90,280);if(skyDome)paintSky('#6aa0d8','#e3eef8');
-  hemi.intensity=.62;hemi.color.set('#ffffff');hemi.groundColor.set('#e9e4da');renderer.toneMappingExposure=1.1;
+  hemi.intensity=.62;hemi.color.set('#ffffff');hemi.groundColor.set('#e9e4da');renderer.toneMappingExposure=1.1*(ST.expo||1);
   const on=ST.lamps;ptLights.forEach(l=>{l.visible=on});Object.values(glowCache).forEach(m=>{m.emissiveIntensity=on?2.2:.6});
 }
 function interiorLights(){
@@ -683,8 +693,12 @@ let glide=null;
 function startGlide(x,z){glide={x0:pos.x,z0:pos.z,x1:x,z1:z,t:0}}
 function glideTo(cx,cy){setRay(cx,cy);const o=ray.ray.origin,d=ray.ray.direction;if(d.y>-1e-3)return;const t=-o.y/d.y,x=o.x+d.x*t,z=o.z+d.z*t;if(roomAt(x,z)&&!collide(x,z))startGlide(x,z);else toast('المكان ده مينفعش تقف فيه')}
 function toast(t){const el=$('toast');el.textContent=t;el.classList.add('on');clearTimeout(toast.t);toast.t=setTimeout(()=>el.classList.remove('on'),4000)}
+function unstick(){const r=.22;for(let it=0;it<4;it++){let moved=false;
+  for(const c of colliders){if(pos.x>c.x0-r&&pos.x<c.x1+r&&pos.z>c.z0-r&&pos.z<c.z1+r){const l=pos.x-(c.x0-r),rr=(c.x1+r)-pos.x,u=pos.z-(c.z0-r),d=(c.z1+r)-pos.z,m=Math.min(l,rr,u,d);
+    if(m===l)pos.x=c.x0-r-.002;else if(m===rr)pos.x=c.x1+r+.002;else if(m===u)pos.z=c.z0-r-.002;else pos.z=c.z1+r+.002;moved=true}}
+  if(!moved)break}}
 function step(dt){
-  if(mode!=='walk')return;
+  if(mode!=='walk')return;unstick();
   if(+ST.spin)yaw+=(+ST.spin>0?1:-1)*(ST.spinSpeed||.45)*dt;
   if(glide){if(mv.x||mv.y)glide=null;else{glide.t+=dt/.6;const e=glide.t>=1?1:1-Math.pow(1-glide.t,3);pos.x=glide.x0+(glide.x1-glide.x0)*e;pos.z=glide.z0+(glide.z1-glide.z0)*e;if(glide.t>=1)glide=null;return}}
   let fx=mv.y,sx=0;
@@ -1021,6 +1035,7 @@ function renderTabs(){
     ${tg('accent','حيطة مميزة بلون اللوحة (المعيشة والماستر والسفرة)',ST.accent)}
     <h4>أرضية المعيشة والسفرة والمدخل</h4>${chips('main',[['porcelain','بورسلين'],['wood','باركيه خشب'],['marble','رخام'],['dark','بورسلين داكن']],ST.main)}
     <h4>أرضية الممر والمدخل</h4>${chips('cor',[['wood','باركيه خشب'],['porcelain','بورسلين'],['marble','رخام'],['dark','بورسلين داكن']],ST.cor)}
+    <div class="chips"><button data-act="look" style="background:var(--accent);color:var(--accent-ink);font-weight:700">✨ طبّق ستايل الصورة (بيج دافئ + رخام + إضاءة)</button></div>
     <h4>الرخام (المطبخ والسفرة وأرضية الرخام)</h4><div class="chips">${STONES.map(x=>`<button data-k="stone" data-v="${x[0]}" class="${ST.stone===x[0]?'on':''}">${x[1]}<span class="sw" style="background:${x[2]}"></span></button>`).join('')}</div>
     <h4>صورة التلفزيون</h4>${chips('tvimg',[['sunset','غروب'],['sea','بحر'],['forest','غابة'],['city','مدينة بالليل'],['off','مطفي']],ST.tvimg)}
     <h4>شكل النجفة</h4>${chips('chand',[['rings','حلقات'],['crystal','كريستال'],['globes','كرات'],['linear','خطية']],ST.chand)}
@@ -1041,6 +1056,7 @@ function renderTabs(){
     b.innerHTML=`<h4>نوع الإضاءة</h4>${chips('light',[['studio','ضوء متعادل (مؤقت، للتفاصيل)'],['sun','شمس حقيقية']],ST.light)}<div class="note">الضوء المتعادل بيوضّح الأرضية والحيطان من غير ما الشمس تلعب. الشمس الحقيقية اتجاهها مبني على إن تراسات الريسبشن ناحية البحر (شمال).</div><h4>4D: الشمس والوقت</h4>${sl('hour','الساعة',ST.hour,6,20,.25,'')}
     <div class="note">الشمس بتدخل من الشبابيك وتعمل ضلال حقيقية على العفش. الاتجاه الحالي تقديري، ظبطه لما نعرف اتجاه الشقة.</div>
     ${sl('north','لفّ اتجاه الشمال',ST.north,0,355,5,'°')}
+    <h4>سطوع الصورة</h4>${sl('expo','السطوع العام',ST.expo||1,.5,1.5,.05,'×')}
     <h4>إضاءة الشقة</h4>${tg('lamps','شغّل الأنوار (نهارًا كمان)',ST.lamps)}
     <div class="chips" style="margin-top:8px"><button data-hr="7">شروق</button><button data-hr="12">ظهر</button><button data-hr="16">عصر</button><button data-hr="18.5">غروب</button><button data-hr="20">ليل</button></div>
     <h4>جودة العرض</h4>${chips('q',[['high','عالية'],['mid','متوسطة'],['low','خفيفة']],ST.q)}
@@ -1101,7 +1117,7 @@ $('body').addEventListener('click',e=>{
   if(b.dataset.bp){const [k,v]=b.dataset.bp.split(':'),it=selId&&itemById(selId);if(!it)return;patchItem(selId,{args:Object.assign({},it.args||{},{[k]:isNaN(+v)?v:+v})});refurnish();updateDims();return}
   if(b.dataset.dim){const [k,v]=b.dataset.dim.split(':');dimStep(k,+v);return}
   if(b.dataset.rk||b.dataset.rm||b.dataset.rk2){roomAct(b);return}
-  if(b.dataset.act){const a=b.dataset.act;if(a==='centerwall'){moveToRoomWall(0,true);return}if(a==='fitwall'){fitWall(0);return}
+  if(b.dataset.act){const a=b.dataset.act;if(a==='look'){applyLook();return}if(a==='centerwall'){moveToRoomWall(0,true);return}if(a==='fitwall'){fitWall(0);return}
   if(a==='snapwall'){const it=selId&&itemById(selId);const pp=it&&snapItemToWall(it);if(pp){patchItem(selId,pp);refurnish()}else toast('مفيش حيطة قريبة من القطعة دي')}else if(a==='straight'){const it=selId&&itemById(selId);if(it){patchItem(selId,{ry:+(Math.round((it.ry||0)/(Math.PI/2))*Math.PI/2).toFixed(4)});refurnish()}}else if(a==='dup')dupItem();else if(a==='del'){delItem();renderTabs()}else if(a==='reset')resetItem();else if(a==='resetall')resetAll();else if(a==='copyedits')copyText(editsText(),'copyMsg');else if(a==='copylink')copyText(shareLink(),'copyMsg');return}
   if(b.dataset.hr){ST.hour=+b.dataset.hr;setTime();renderTabs();dirty();return}
   const k=b.dataset.k;if(k==null)return;let v=b.dataset.v;
@@ -1129,6 +1145,7 @@ $('body').addEventListener('input',e=>{
   if(t.id==='ghtok'){try{localStorage.setItem('prop:ghtoken',t.value.trim())}catch(x){}return}if(t.dataset.p){PR[t.dataset.p]=+t.value;calcTot();return}
   if(!t.dataset.s)return;const k=t.dataset.s,v=+t.value;$('v_'+k).textContent=v.toFixed(t.step<1?2:0)+(k==='north'?'°':k==='fov'?'°':k==='hour'?'':k==='speed'?' م/ث':k==='sens'?'×':k==='spinSpeed'||k==='turn'?'':' م');
   if(k==='hour'){ST.hour=v;setTime()}else if(k==='north'){ST.north=v;setTime()}else if(k==='fov'){P.fov=v;applyCam()}else if(k==='eye'){P.eye=v;applyCam();hud()}
+  else if(k==='expo'){ST.expo=v;setTime()}
   else if(k==='speed'||k==='sens'||k==='spinSpeed'||k==='turn'){ST[k]=v}
   else{P[k]=v;clearTimeout(rbT);rbT=setTimeout(rebuild,250)}dirty();
 });
@@ -1173,7 +1190,7 @@ function boot(){
   let last=performance.now();
   (function loop(now){requestAnimationFrame(loop);const raw=(now-last)/1000,dt=Math.min(.05,raw);last=now;perf(raw);step(dt);drawMini();applyCam();if(mode==='walk'&&(mv.x||mv.y||glide||ST.spin||(++hudN%10===0)))hud();if(boxHelper)boxHelper.update();updateLabels();renderer.render(scene,cam)})(last);
   $('bSave').onclick=()=>syncSave();updateSaveBtn();setTimeout(syncPoll,2500);
-  window.__walk={labelHidden,wallGrp:()=>wallGrp,fitWall,syncPoll,hasEdits,setRoom,restoreBackup,listBackups,dimStep,bakedModel,syncSave,syncPull,moveToRoomWall,putOnWall,snapItemToWall,itemById,get selId(){return selId},get selWall(){return selWall},get lastHit(){return lastHit},get pitch(){return pitch},set pitch(v){pitch=v},get pos(){return pos},get yaw(){return yaw},set yaw(v){yaw=v},get glide(){return glide},toast,wallOp,wallAction,OPINFO,get WALLS(){return WALLS},get ROOMS(){return ROOMS},setSel:(w,o)=>{selWall=w;selOp=o||null;wallHL();renderWallPanel()},ST,P,goPreset,setMode,rebuild,get Q(){return Q},cam,scene,get FURN(){return FURN},get edits(){return edits},selectItem,nudge,rotItem,addItem,delItem,orbit,focusRoom,orbitZoom,get mode(){return mode},enterHere,refurnish,furnMap};
+  window.__walk={colliders:()=>colliders,labelHidden,wallGrp:()=>wallGrp,fitWall,syncPoll,hasEdits,setRoom,restoreBackup,listBackups,dimStep,bakedModel,syncSave,syncPull,moveToRoomWall,putOnWall,snapItemToWall,itemById,get selId(){return selId},get selWall(){return selWall},get lastHit(){return lastHit},get pitch(){return pitch},set pitch(v){pitch=v},get pos(){return pos},get yaw(){return yaw},set yaw(v){yaw=v},get glide(){return glide},toast,wallOp,wallAction,OPINFO,get WALLS(){return WALLS},get ROOMS(){return ROOMS},setSel:(w,o)=>{selWall=w;selOp=o||null;wallHL();renderWallPanel()},ST,P,goPreset,setMode,rebuild,get Q(){return Q},cam,scene,get FURN(){return FURN},get edits(){return edits},selectItem,nudge,rotItem,addItem,delItem,orbit,focusRoom,orbitZoom,get mode(){return mode},enterHere,refurnish,furnMap};
 }
 (window.MODEL_INLINE?Promise.resolve(window.MODEL_INLINE):fetch('../apartments/'+APT+'/model.json').then(r=>{if(!r.ok)throw new Error('HTTP '+r.status);return r.json()}))
  .then(m=>{applyModel(m);boot()}).catch(e=>{const x=$('err');x.style.display='flex';x.textContent='ما قدرتش أحمّل بيانات العقار: '+e.message});

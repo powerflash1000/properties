@@ -61,3 +61,7 @@ Realistic renders: export `model.json` to Blender (Cycles, bpy) for photoreal st
 
 ## Product catalog (2026-11-24)
 - `BRANDS` / `BRAND_STYLE` in viewer: item `args` {brand, kind, inch, mount, hp, col, w, h, y}. Types: `tv` (standalone, wall/stand), `tvUnit` (embeds a TV: args.brand/inch), `fridge` (side/french/top/bottom × steel/black/white), `ac` (wall/floor/cassette, hp 1.5–4, colors), `hood` (chimney/slim/island; separate from `hob`, which is now cooktop only; model has `kit-hood`). UI = «الماركة والنوع» block in the furniture tab (`updateBrand`, `data-bp="key:value"`). Logos are simple canvas wordmarks, bodies are generic shapes styled per brand (not licensed product models). Real branded 3D models → Blender phase.
+
+## Look pack v2 + stick fix (2026-11-24)
+- `unstick()` in `step()`: if the camera sits inside a wall's collision margin (e.g. spawn presets after the wall re-registration) it is pushed out; before this, forward/back were blocked while turning still worked.
+- «✨ طبّق ستايل الصورة» (design tab, `applyLook`): palette 7 «لوكس بيج دافئ», marble floors (slab 1.6 m), crema marble, warm lamps, studio light with `ST.expo` .66, crystal chandelier. `ST.expo` slider in the light tab. New `sofaL` type. PALS: always append, never insert (saved `ST.pal` indices).

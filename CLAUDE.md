@@ -65,3 +65,5 @@ Realistic renders: export `model.json` to Blender (Cycles, bpy) for photoreal st
 ## Look pack v2 + stick fix (2026-11-24)
 - `unstick()` in `step()`: if the camera sits inside a wall's collision margin (e.g. spawn presets after the wall re-registration) it is pushed out; before this, forward/back were blocked while turning still worked.
 - «✨ طبّق ستايل الصورة» (design tab, `applyLook`): palette 7 «لوكس بيج دافئ», marble floors (slab 1.6 m), crema marble, warm lamps, studio light with `ST.expo` .66, crystal chandelier. `ST.expo` slider in the light tab. New `sofaL` type. PALS: always append, never insert (saved `ST.pal` indices).
+
+- Kitchen door (fixed 2026-11-24 from the owner's reference render): on the kitchen's EAST wall `V4b` (x=10.66) at c=3.9, w .85, swinging into the kitchen, next to the guest-bath door; the south wall `H6` toward the corridor is solid. `kit-run-e` shortened to len 1.9 (z .4 centre 2.4) to clear the door.

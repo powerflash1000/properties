@@ -14,6 +14,11 @@ Private repo for the family's properties (apartment now; villa and chalet later)
 - Publish the viewer as an artifact with `python3 tools/build_single.py apt1 out.html` then the Artifact tool (the old artifact URL for the apartment is https://claude.ai/artifact/C5eZfG8Ci5wqokLVbiGcU3 — republish the same file path to keep it).
 - Commit with `git -c user.name="Claude" -c user.email="noreply@anthropic.com"`.
 
+## Editing in the viewer
+- Tabs: «العفش» (move/rotate/duplicate/delete/add furniture) and «الحيطان والفتحات» (tap a wall/window/door → demolish, move a wall segment (resizes the two rooms beside it), remove/resize/move an opening, add window/door/balcony door/arch). Edits live in `localStorage` and in the share link (`#e=…`): `edits.mod/del/add` for furniture, `edits.w` for wall ops (`rm`, `mv`, `rmop`, `addop`, `modop`).
+- `model.json` walls are pre-split at junctions (ids like `V7d`) so one segment can be moved alone. Moving a wall shifts the rooms' edges and the ends of perpendicular walls that meet it; junction jogs may need a manual fix in `model.json`.
+- To make a user's edits permanent, apply them to `model.json` (furniture `x/z/ry`, wall `p`, `op`, room rects) and push.
+
 ## Apartment 1 — known facts (from the owner)
 - Total 202 m² (gross); dimensions on the plan sum to ~140 m² net. Ceiling 2.70 m. Doors ~1.0×2.30 m. Balcony doors ~1.5 m. Reception window 1×1 m, kitchen window ~1.1 m, small bathroom windows.
 - Corridor length 10.30 m (3.65+1.6+3.2+1.9), width ~1.5 m (assumed). Entrance foyer ~2.0×1.9 m.

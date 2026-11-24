@@ -642,6 +642,7 @@ const E0keys=()=>edits.add.length||edits.del.length||Object.keys(edits.mod).leng
 let baseSha=(()=>{try{return localStorage.getItem('prop:'+APT+':sha')||''}catch(e){return ''}})(),saving=false,forceNext=false,lastBackup=+(()=>{try{return localStorage.getItem('prop:'+APT+':bk')||0}catch(e){return 0}})(),syncState='';
 function setBase(s2){baseSha=s2;try{localStorage.setItem('prop:'+APT+':sha',s2)}catch(e){}}
 const hasEdits=()=>!!(E0keys()||forceNext);
+const whoName=()=>{try{return localStorage.getItem('prop:who')||''}catch(e){return ''}};
 function deviceName(){let d='';try{d=localStorage.getItem('prop:device')||''}catch(e){}if(d)return d;const u=navigator.userAgent;return /iPhone/.test(u)?'iPhone':/iPad/.test(u)?'iPad':/Android/.test(u)?'Android':/Mac/.test(u)?'Mac':/Windows/.test(u)?'Windows':'جهاز'}
 function updateSaveBtn(){const b=document.getElementById('bSave');if(!b)return;
   const st=saving?'saving':(hasEdits()?'dirty':(lastBackup?'ok':''));
@@ -669,7 +670,7 @@ async function writeBackup(m,note){
       const r1=await ghPut('apartments/'+APT+'/backups/'+String(n).padStart(4,'0')+'.json',m,null,'Backup #'+n);
       if(r1.status===422){skip++;continue}if(!r1.ok)throw await httpErr(r1);
       for(let j=0;j<3;j++){
-        const lg2=j?await ghGet(logPath):lg,lg3=lg2?lg2.json:{last:0,items:[]};lg3.last=Math.max(lg3.last||0,n);lg3.items=(lg3.items||[]).filter(x=>x.n!==n).concat([{n,t:new Date().toISOString(),by:deviceName(),note:note||''}]).slice(-300);
+        const lg2=j?await ghGet(logPath):lg,lg3=lg2?lg2.json:{last:0,items:[]};lg3.last=Math.max(lg3.last||0,n);lg3.items=(lg3.items||[]).filter(x=>x.n!==n).concat([{n,t:new Date().toISOString(),by:(whoName()||'؟')+' • '+deviceName(),note:note||''}]).slice(-300);
         const r2=await ghPut(logPath,lg3,lg2&&lg2.sha,'Backup log #'+n);if(r2.ok)return n;if(r2.status!==409&&r2.status!==422)throw await httpErr(r2)}
       return n}
   }catch(e){console.warn('backup failed',e&&e.message);return -1}
@@ -677,6 +678,7 @@ async function writeBackup(m,note){
 async function syncSave(note){
   if(saving)return;
   if(window.MODEL_INLINE){toast('نسخة Claude مقفولة على النت. الحفظ بيشتغل من صفحة GitHub.');return}
+  if(!whoName()){tab='sync';renderTabs();sheetOpen&&sheetOpen(true);syncMsg('اختار مين انت (علاء ولا وفاء) الأول، وبعدها دوس احفظ.',false);toast('اختار مين بيعدّل الأول — تبويب المزامنة');return}
   if(!GHK()){tab='sync';renderTabs();sheetOpen&&sheetOpen(true);syncMsg('اكتب مفتاح GitHub الأول (مرة واحدة) وبعدها دوس احفظ.',false);toast('محتاج مفتاح GitHub (مرة واحدة) — تبويب المزامنة');return}
   saving=true;updateSaveBtn();syncMsg('بحفظ…');
   try{
@@ -684,7 +686,7 @@ async function syncSave(note){
     for(let a=0;a<3&&!ok;a++){
       const cur=await ghGet(ghPath());
       if(cur&&cur.sha!==baseSha&&!forceNext){applyModel(cur.json);setBase(cur.sha);refreshAll();toast('لقيت تعديلات جديدة من جهاز تاني ودمجتها مع تعديلاتك')}
-      const m=bakedModel(),r=await ghPut(ghPath(),m,cur&&cur.sha,'Save '+APT+' from '+deviceName());
+      const m=bakedModel(),r=await ghPut(ghPath(),m,cur&&cur.sha,'Save '+APT+' by '+(whoName()||'?')+' ('+deviceName()+')');
       if(r.status===409||r.status===422)continue;if(!r.ok)throw await httpErr(r);
       const res=await r.json();setBase(res.content.sha);
       const n=await writeBackup(m,note);if(n>0){lastBackup=n;try{localStorage.setItem('prop:'+APT+':bk',n)}catch(e){}}
@@ -858,6 +860,9 @@ function renderTabs(){
   if(tab==='sync'){const tok=localStorage.getItem('prop:ghtoken')||'';
     b.innerHTML=`<div class="note">زرار <b>💾 احفظ</b> (تحت على الشاشة دايمًا) بيحفظ تصميمك على GitHub، ويعمل <b>نسخة احتياطية مرقّمة</b>. أي جهاز تاني (مامي والأولاد) هيشوف التعديل لوحده خلال دقيقة تقريبًا، وتعديلاتهم بتظهر عندك بنفس الطريقة. لو حد عدّل وإنت لسه ما حفظتش، التعديلات بتتدمج.</div>
     ${window.MODEL_INLINE?'<div class="note" style="margin-top:8px;color:var(--amber)">إنت دلوقتي في نسخة Claude، وهي مقفولة على النت، فالحفظ والتحديث مش هيشتغلوا هنا. استخدم صفحة GitHub: powerflash1000.github.io/properties/viewer/index.html</div>':''}
+    <h4>مين بيعدّل على الجهاز ده؟</h4>
+    <div class="chips">${['علاء','وفاء'].map(n=>`<button data-who="${n}" class="${whoName()===n?'on':''}">${n}</button>`).join('')}<button data-who="*" class="${whoName()&&!['علاء','وفاء'].includes(whoName())?'on':''}">${whoName()&&!['علاء','وفاء'].includes(whoName())?esc2(whoName()):'غيره…'}</button></div>
+    <div class="note">الاسم بيظهر في كل نسخة احتياطية علشان تعرفوا مين عمل إيه.</div>
     <h4>الجهاز ده</h4>
     <div class="row"><label for="devname">اسم الجهاز (بيظهر في النسخ الاحتياطية)</label><input id="devname" value="${esc2(deviceName())}" style="flex:2 1 160px;font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:7px"></div>
     <div class="row"><label for="ghtok">مفتاح GitHub</label><input type="password" id="ghtok" value="${esc2(tok)}" placeholder="github_pat_…" autocomplete="off" style="flex:2 1 220px;font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:7px"></div>
@@ -962,6 +967,7 @@ const dirty=()=>{save()};
 $('body').addEventListener('click',e=>{
   const b=e.target.closest('button');if(!b)return;
   if(b.dataset.towall){moveToRoomWall(+b.dataset.towall);return}
+  if(b.dataset.who){let n=b.dataset.who;if(n==='*'){n=(prompt('اسمك؟',whoName())||'').trim();if(!n)return}try{localStorage.setItem('prop:who',n)}catch(e){}renderTabs();updateSaveBtn();toast('تمام يا '+n);return}
   if(b.dataset.bk){restoreBackup(+b.dataset.bk);return}
   if(b.dataset.sync){if(b.dataset.sync==='save')syncSave();else if(b.dataset.sync==='bk')listBackups();else syncPull();return}
   if(b.dataset.wput!=null){putOnWall(+b.dataset.wput);return}

@@ -70,3 +70,4 @@ Realistic renders: export `model.json` to Blender (Cycles, bpy) for photoreal st
 
 ## Stick v3 (2026-11-26)
 - Default stick mode is now `strafe` («PlayStation»: push in any direction = move relative to the view; drag the screen to look). Saved `stickMode:'turn'` is migrated once (`ST.stickV=2`). On-screen toggle `#bStick` next to the stick switches 🎮 free / ↺ turn. A yellow floor arrow (`moveArrow`) shows the walking direction while moving.
+- Stick v4 (2026-11-26): default mode `auto` (`ST.stickV=3`): stick angle = world heading relative to the yaw at touch start (`stickRef`, kept in sync if the user looks/snap-turns meanwhile); the camera turns toward it (~4 rad/s) and walks forward scaled by how aligned it is; pushing down turns around 180°. Floor arrow points at the target heading. `#bStick` cycles auto → strafe → turn. Tested at 1180×820: up/right/left/down/diagonal and steering inside one touch.

@@ -122,7 +122,7 @@ const PALS=[
  {n:'لوكس بيج دافئ (ستايل الصورة)',w:'#efe6d6',a:'#b79b7a',f:'#e6d8bd',wd:'#8a6a4a',m:'#c8a24a'},
 ];
 try{const s=JSON.parse(localStorage.getItem('prop:'+APT+':st')||'null');if(s){Object.assign(ST,s,{lay:Object.assign(ST.lay,s.lay||{})});if(s.P)Object.assign(P,s.P)}}catch(e){}
-if(ST.stickV!==2){ST.stickMode='strafe';ST.stickV=2}
+if(ST.stickV!==3){ST.stickMode='auto';ST.stickV=3}
 const save=()=>{try{localStorage.setItem('prop:'+APT+':st',JSON.stringify(Object.assign({},ST,{P})))}catch(e){}};
 
 /* ================= model: loaded from apartments/<id>/model.json ================= */
@@ -701,6 +701,8 @@ function arrowMesh(){if(moveArrow)return moveArrow;const sh=new T.Shape();sh.mov
   const g=new T.ShapeGeometry(sh);g.rotateX(-Math.PI/2);moveArrow=new T.Mesh(g,new T.MeshBasicMaterial({color:0xffd166,transparent:true,opacity:.85,depthTest:false,depthWrite:false}));moveArrow.renderOrder=40;moveArrow.visible=false;scene.add(moveArrow);return moveArrow}
 function arrowShow(dx,dz,k){const a=arrowMesh();a.visible=true;const l=Math.hypot(dx,dz)||1;a.position.set(pos.x+dx/l*1.25,.04,pos.z+dz/l*1.25);a.rotation.y=Math.atan2(-dx,-dz);const sc=.7+.6*k;a.scale.set(sc,1,sc)}
 function arrowHide(){if(moveArrow)moveArrow.visible=false}
+const angd=(a,b)=>{let d=a-b;while(d>Math.PI)d-=2*Math.PI;while(d<-Math.PI)d+=2*Math.PI;return d};
+let stickRef=0,stickLast=0,autoShown=false;
 function unstick(){const r=.22;for(let it=0;it<4;it++){let moved=false;
   for(const c of colliders){if(pos.x>c.x0-r&&pos.x<c.x1+r&&pos.z>c.z0-r&&pos.z<c.z1+r){const l=pos.x-(c.x0-r),rr=(c.x1+r)-pos.x,u=pos.z-(c.z0-r),d=(c.z1+r)-pos.z,m=Math.min(l,rr,u,d);
     if(m===l)pos.x=c.x0-r-.002;else if(m===rr)pos.x=c.x1+r+.002;else if(m===u)pos.z=c.z0-r-.002;else pos.z=c.z1+r+.002;moved=true}}
@@ -709,13 +711,20 @@ function step(dt){
   if(mode!=='walk'){arrowHide();return}unstick();
   if(+ST.spin)yaw+=(+ST.spin>0?1:-1)*(ST.spinSpeed||.45)*dt;
   if(glide){if(mv.x||mv.y)glide=null;else{glide.t+=dt/.6;const e=glide.t>=1?1:1-Math.pow(1-glide.t,3);pos.x=glide.x0+(glide.x1-glide.x0)*e;pos.z=glide.z0+(glide.z1-glide.z0)*e;if(glide.t>=1)glide=null;return}}
-  let fx=mv.y,sx=0;
-  if(ST.stickMode==='strafe')sx=mv.x;else if(Math.abs(mv.x)>.12){const tt=Math.sign(mv.x)*Math.pow((Math.abs(mv.x)-.12)/.88,1.4);yaw+=tt*(ST.turn||1.6)*ST.sens*dt}
+  let fx=mv.y,sx=0;autoShown=false;
+  if(ST.stickMode==='auto'){fx=0;const m=Math.hypot(mv.x,mv.y);
+    if(stickId!=null)stickRef+=angd(yaw,stickLast);
+    if(stickId!=null&&m>.18){let ph=Math.atan2(mv.x,mv.y);if(Math.abs(ph)<.22)ph=0;const tg=stickRef+ph,df=angd(tg,yaw);
+      yaw+=Math.sign(df)*Math.min(Math.abs(df),(ST.turn||1.6)*2.6*ST.sens*dt);
+      const err=Math.abs(angd(tg,yaw)),ms=Math.min(1,(m-.18)/.7);fx=ms*Math.max(0,1-err/1.1);
+      arrowShow(Math.sin(tg),-Math.cos(tg),ms);autoShown=true}
+    stickLast=yaw}
+  else if(ST.stickMode==='strafe')sx=mv.x;else if(Math.abs(mv.x)>.12){const tt=Math.sign(mv.x)*Math.pow((Math.abs(mv.x)-.12)/.88,1.4);yaw+=tt*(ST.turn||1.6)*ST.sens*dt}
   if(keys.w||keys.arrowup)fx+=1;if(keys.s||keys.arrowdown)fx-=1;if(keys.d||keys.arrowright)sx+=1;if(keys.a||keys.arrowleft)sx-=1;
   if(keys.q)yaw-=1.6*dt;if(keys.e)yaw+=1.6*dt;
-  const l=Math.hypot(fx,sx);if(l<.1){arrowHide();return}const k=Math.pow(Math.min(1,l),1.5),sp=(keys.shift?2:1)*ST.speed*dt*k;fx/=l;sx/=l;
+  const l=Math.hypot(fx,sx);if(l<.1){if(!autoShown)arrowHide();return}const k=Math.pow(Math.min(1,l),1.5),sp=(keys.shift?2:1)*ST.speed*dt*k;fx/=l;sx/=l;
   if(ST.autoLevel)pitch*=Math.max(0,1-3*dt);
-  const dx=(Math.sin(yaw)*fx+Math.cos(yaw)*sx)*sp,dz=(-Math.cos(yaw)*fx+Math.sin(yaw)*sx)*sp;arrowShow(dx,dz,k);
+  const dx=(Math.sin(yaw)*fx+Math.cos(yaw)*sx)*sp,dz=(-Math.cos(yaw)*fx+Math.sin(yaw)*sx)*sp;if(ST.stickMode!=='auto')arrowShow(dx,dz,k);
   if(!collide(pos.x+dx,pos.z))pos.x+=dx;if(!collide(pos.x,pos.z+dz))pos.z+=dz;
 }
 const PRESETS=[
@@ -922,10 +931,10 @@ function tapSelect(x,y){setRay(x,y);const hits=ray.intersectObjects(furnGrp.chil
 /* pointer handling: stick + look + orbit/pinch/pan + tap */
 const ptr=new Map();let stickId=null,pinch0=0,mid0=null,tapT=0,tapMoved=0,lastTap=0;
 const stick=$('stick'),knob=$('knob');
-function stickLabel(){$('bStick').textContent=ST.stickMode==='strafe'?'🎮 حر (جانبي)':'↺ يمين/شمال = لفّ'}
-$('bStick').onclick=()=>{ST.stickMode=ST.stickMode==='strafe'?'turn':'strafe';stickLabel();save();toast(ST.stickMode==='strafe'?'العصا زي البلاي ستيشن: امشي في أي اتجاه، وإسحب على الشاشة تلفّ':'العصا بتلفّ يمين وشمال وتمشي قدام وورا')};stickLabel();
+function stickLabel(){$('bStick').textContent=ST.stickMode==='auto'?'🎮 تلقائي (يلفّ معاك)':ST.stickMode==='strafe'?'↔ حر (جانبي)':'↺ يمين/شمال = لفّ'}
+$('bStick').onclick=()=>{ST.stickMode=ST.stickMode==='auto'?'strafe':ST.stickMode==='strafe'?'turn':'auto';stickLabel();save();toast(ST.stickMode==='auto'?'تلقائي: ادفع العصا ناحية اللي عايز تروحها والكاميرا هتلف وتمشي لوحدها (لو عايز ترجع ورا ادفعها لتحت)':ST.stickMode==='strafe'?'حر: مشي في أي اتجاه من غير لفّ، وإسحب على الشاشة تلفّ':'لفّ: يمين وشمال بيلفّوا، وفوق وتحت بيمشّوك')};stickLabel();
 function stickMove(e){const r=stick.getBoundingClientRect(),cx=r.left+r.width/2,cy=r.top+r.height/2;let dx=(e.clientX-cx)/(r.width/2),dy=(e.clientY-cy)/(r.height/2);const l=Math.hypot(dx,dy);if(l>1){dx/=l;dy/=l}knob.style.transform=`translate(${dx*46}px,${dy*46}px)`;mv.x=dx;mv.y=-dy}
-stick.addEventListener('pointerdown',e=>{stickId=e.pointerId;stick.setPointerCapture(e.pointerId);stickMove(e);e.stopPropagation()});
+stick.addEventListener('pointerdown',e=>{stickId=e.pointerId;stickRef=yaw;stickLast=yaw;stick.setPointerCapture(e.pointerId);stickMove(e);e.stopPropagation()});
 stick.addEventListener('pointermove',e=>{if(e.pointerId===stickId)stickMove(e)});
 const stickEnd=e=>{if(e.pointerId===stickId){stickId=null;mv.x=mv.y=0;knob.style.transform=''}};
 stick.addEventListener('pointerup',stickEnd);stick.addEventListener('pointercancel',stickEnd);
@@ -1011,7 +1020,7 @@ function renderTabs(){
     <h4>إزاي تعمل المفتاح (مرة واحدة لكل جهاز)</h4>
     <div class="note">1) افتح github.com/settings/personal-access-tokens/new<br>2) الاسم: properties-viewer، والمدة: 90 يوم.<br>3) Repository access: <b>Only select repositories</b> واختار <b>properties</b>.<br>4) Permissions → Repository permissions → <b>Contents: Read and write</b>.<br>5) Generate token وانسخه وحطه فوق.<br>المفتاح بيتحفظ على الجهاز ده بس ومش بيتبعت لحد. أي حد معاه المفتاح يقدر يعدّل المستودع، فمتبعتوش في رسائل عامة، وتقدر تمسحه من GitHub في أي وقت. كل فرد في العيلة يعمل مفتاحه من حسابه (لازم تضيفه Collaborator على المستودع) أو تديله مفتاح مخصوص ليه.</div>
     <h4>من غير مفتاح</h4><div class="note">اضغط «انسخ تعديلاتي» في تبويب العفش وابعتها لـ Claude في الشات، وهو يثبّتها في المستودع.</div>`}
-  else if(tab==='ctrl'){b.innerHTML=`<h4>العصا (الدايرة)</h4>${chips('stickMode',[['turn','يمين/شمال = لفّ حوالين نفسك'],['strafe','يمين/شمال = مشي جانبي']],ST.stickMode)}${sl('turn','سرعة اللفّ بالعصا',ST.turn||1.6,.5,4,.1,'')}
+  else if(tab==='ctrl'){b.innerHTML=`<h4>العصا (الدايرة)</h4>${chips('stickMode',[['auto','تلقائي: الكاميرا بتلفّ ناحية اتجاه العصا وتمشي'],['strafe','حر: مشي جانبي من غير لفّ'],['turn','يمين/شمال = لفّ حوالين نفسك']],ST.stickMode)}${sl('turn','سرعة اللفّ بالعصا',ST.turn||1.6,.5,4,.1,'')}
     <h4>الحركة</h4>${sl('speed','سرعة المشي',ST.speed,.5,4,.1,' م/ث')}${sl('sens','حساسية النظر',ST.sens,.3,2.5,.1,'×')}
     ${tg('inv','عكس اتجاه النظر لفوق وتحت',ST.inv)}${tg('autoLevel','النظر يرجع أفقي لوحده وانت ماشي',ST.autoLevel)}<h4>لفّة 360° تلقائية (للتفرج)</h4>${chips('spin',[[0,'واقف'],[1,'لفّ يمين'],[-1,'لفّ شمال']],+ST.spin||0)}${sl('spinSpeed','سرعة اللفّة',ST.spinSpeed||.45,.1,1.5,.05,'')}
     <h4>الأداء</h4>${chips('q',[['high','عالية'],['mid','متوسطة'],['low','خفيفة']],ST.q)}

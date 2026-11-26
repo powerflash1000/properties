@@ -67,3 +67,6 @@ Realistic renders: export `model.json` to Blender (Cycles, bpy) for photoreal st
 - «✨ طبّق ستايل الصورة» (design tab, `applyLook`): palette 7 «لوكس بيج دافئ», marble floors (slab 1.6 m), crema marble, warm lamps, studio light with `ST.expo` .66, crystal chandelier. `ST.expo` slider in the light tab. New `sofaL` type. PALS: always append, never insert (saved `ST.pal` indices).
 
 - Kitchen door (fixed 2026-11-24 from the owner's reference render): on the kitchen's EAST wall `V4b` (x=10.66) at c=3.9, w .85, swinging into the kitchen, next to the guest-bath door; the south wall `H6` toward the corridor is solid. `kit-run-e` shortened to len 1.9 (z .4 centre 2.4) to clear the door.
+
+## Stick v3 (2026-11-26)
+- Default stick mode is now `strafe` («PlayStation»: push in any direction = move relative to the view; drag the screen to look). Saved `stickMode:'turn'` is migrated once (`ST.stickV=2`). On-screen toggle `#bStick` next to the stick switches 🎮 free / ↺ turn. A yellow floor arrow (`moveArrow`) shows the walking direction while moving.

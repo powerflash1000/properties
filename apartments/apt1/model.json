@@ -316,7 +316,10 @@
      "c": 3.9,
      "w": 0.85,
      "ty": "door",
-     "into": "kit"
+     "into": "kit",
+     "col": "black",
+     "style": "groove",
+     "hs": -1
     }
    ]
   },

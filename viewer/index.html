@@ -496,11 +496,85 @@ function itemVisible(it){const w=it.when||{};
   if(w.layout&&ST.lay[w.layout]!==w.v)return false;if(w.kitOpen!=null&&ST.kitOpen!==w.kitOpen)return false;
   if(it.curtain&&!ST.curtains)return false;if(it.type==='plant'&&ST.plants===false)return false;return true}
 function furnish(){
-  furnMap.clear();if(ST.furn===false)return;
+  furnMap.clear();billList=[];if(ST.furn===false)return;
   for(const it of FURN){if(!itemVisible(it))continue;const fn=BUILD[it.type];if(!fn)continue;
-    const g=fn(it.args||{});g.userData.id=it.id;if(ST.fdir&&!['rug','curtain','mirror','mat'].includes(it.type))frontArrow(g);
-    place(g,it.x,it.z,it.ry||0);furnMap.set(it.id,g)}
+    const g=fn(it.args||{});g.userData.id=it.id;
+    const bb=(it.args&&it.args.img)?new T.Box3().setFromObject(g):null;
+    if(ST.fdir&&!['rug','curtain','mirror','mat'].includes(it.type))frontArrow(g);
+    place(g,it.x,it.z,it.ry||0);furnMap.set(it.id,g);
+    if(bb)photoSwap(g,it,bb)}
 }
+/* ===== real photos instead of 3D models ===== */
+const photoMem={},photoTex={};let billList=[];
+const lsGet=k=>{try{return localStorage.getItem(k)}catch(e){return null}};
+function photoSrc(v){if(!v)return null;if(photoMem[v])return photoMem[v];if(v.startsWith('local:')){const id=v.slice(6),d=lsGet('prop:photo:'+id);if(d)photoMem[v]=d;return d}return '../apartments/'+APT+'/'+v}
+const BILL_OFF=['mirror','tvUnit','tv','curtain','ac','hood','rug','mat','wardrobe','glasswardrobe','glasspanel','vanity','shower'];
+function loadPhotoTex(src){if(photoTex[src])return photoTex[src];return photoTex[src]=new Promise((res,rej)=>{new T.TextureLoader().load(src,t=>{t.encoding=T.sRGBEncoding;t.anisotropy=8;res(t)},undefined,rej)})}
+function photoSwap(g,it,bb){const a=it.args||{},src=photoSrc(a.img);if(!src)return;
+  const bw=Math.max(.25,bb.max.x-bb.min.x),bh=Math.max(.25,bb.max.y);
+  loadPhotoTex(src).then(tex=>{if(!g.parent)return;const im=tex.image,ar=im.width/im.height;
+    const pw=a.pw||Math.min(bw,bh*ar),ph=pw/ar;
+    while(g.children.length)g.remove(g.children[0]);
+    const holder=new T.Group();g.add(holder);
+    const m=new T.Mesh(new T.PlaneGeometry(pw,ph),new T.MeshBasicMaterial({map:tex,transparent:true,alphaTest:.04,side:T.DoubleSide,toneMapped:false}));
+    m.position.y=ph/2+(a.py||0);holder.add(m);
+    const sh=new T.Mesh(new T.CircleGeometry(.5,24),new T.MeshBasicMaterial({color:0x000000,transparent:true,opacity:.22,depthWrite:false}));sh.rotation.x=-Math.PI/2;sh.scale.set(pw*.9,Math.max(.12,pw*.18),1);sh.position.y=.006;holder.add(sh);
+    const bill=a.bill==null?!BILL_OFF.includes(it.type):!!a.bill;
+    if(bill)billList.push({g,m});g.userData.photoW=pw;g.userData.photoH=ph;
+    if(selId===it.id){highlight();updatePhoto()}}).catch(()=>{})}
+function billUpdate(){for(const b of billList){if(!b.g.parent)continue;b.m.rotation.y=Math.atan2(cam.position.x-b.g.position.x,cam.position.z-b.g.position.z)-b.g.rotation.y}}
+async function processImage(img,removeBg){const MAX=900,sc=Math.min(1,MAX/Math.max(img.naturalWidth||img.width,img.naturalHeight||img.height)),w=Math.round((img.naturalWidth||img.width)*sc),h=Math.round((img.naturalHeight||img.height)*sc);
+  const c=document.createElement('canvas');c.width=w;c.height=h;const g=c.getContext('2d',{willReadFrequently:true});g.drawImage(img,0,0,w,h);
+  let removed=false;
+  if(removeBg){const id=g.getImageData(0,0,w,h),d=id.data;
+    const px=(x,y)=>{const i=(y*w+x)*4;return[d[i],d[i+1],d[i+2],d[i+3]]};
+    if(px(2,2)[3]<20&&px(w-3,2)[3]<20){/* already transparent */}
+    else{const cs=[px(3,3),px(w-4,3),px(3,h-4),px(w-4,h-4)],av=[0,1,2].map(k=>cs.reduce((t,v)=>t+v[k],0)/4),dist=v=>Math.hypot(v[0]-av[0],v[1]-av[1],v[2]-av[2]);
+      if(cs.every(v=>dist(v)<30)){const tol=46,seen=new Uint8Array(w*h),q=new Int32Array(w*h);let qh=0,qt=0;
+        const push=(x,y)=>{const k=y*w+x;if(seen[k])return;const i=k*4;if(Math.hypot(d[i]-av[0],d[i+1]-av[1],d[i+2]-av[2])>tol)return;seen[k]=1;q[qt++]=k};
+        for(let x=0;x<w;x++){push(x,0);push(x,h-1)}for(let y=0;y<h;y++){push(0,y);push(w-1,y)}
+        while(qh<qt){const k=q[qh++],x=k%w,y=(k-x)/w;if(x>0)push(x-1,y);if(x<w-1)push(x+1,y);if(y>0)push(x,y-1);if(y<h-1)push(x,y+1)}
+        for(let k=0;k<w*h;k++)if(seen[k])d[k*4+3]=0;
+        for(let y=1;y<h-1;y++)for(let x=1;x<w-1;x++){const k=y*w+x;if(!seen[k]&&(seen[k-1]||seen[k+1]||seen[k-w]||seen[k+w]))d[k*4+3]=140}
+        g.putImageData(id,0,0);removed=true}}}
+  let x0=w,y0=h,x1=0,y1=0;{const d=g.getImageData(0,0,w,h).data;for(let y=0;y<h;y++)for(let x=0;x<w;x++){if(d[(y*w+x)*4+3]>10){if(x<x0)x0=x;if(x>x1)x1=x;if(y<y0)y0=y;if(y>y1)y1=y}}}
+  if(x1<=x0||y1<=y0){x0=0;y0=0;x1=w-1;y1=h-1}
+  const cw=x1-x0+1,ch=y1-y0+1,c2=document.createElement('canvas');c2.width=cw;c2.height=ch;c2.getContext('2d').drawImage(c,x0,y0,cw,ch,0,0,cw,ch);
+  return{url:c2.toDataURL('image/png'),removed}}
+function loadImg(src,cors){return new Promise((res,rej)=>{const i=new Image();if(cors)i.crossOrigin='anonymous';i.onload=()=>res(i);i.onerror=()=>rej(new Error('img'));i.src=src})}
+function phMsg(t,bad){const el=document.getElementById('phMsg');if(el){el.textContent=t;el.style.color=bad?'var(--bad)':''}}
+async function usePhotoBlob(blob){const it=selId&&itemById(selId);if(!it){phMsg('اختار قطعة الأول',true);return}
+  phMsg('بجهّز الصورة…');
+  try{const u=URL.createObjectURL(blob),im=await loadImg(u);const rb=document.getElementById('phbg');const r=await processImage(im,!rb||rb.checked);URL.revokeObjectURL(u);
+    const id='ph'+Date.now().toString(36);photoMem['local:'+id]=r.url;try{localStorage.setItem('prop:photo:'+id,r.url)}catch(e){}
+    patchItem(selId,{args:Object.assign({},it.args||{},{img:'local:'+id,pw:undefined,py:undefined})});refurnish();
+    phMsg(r.removed?'اتحطت الصورة وشلت الخلفية. دوس احفظ علشان تبان على الأجهزة التانية.':'اتحطت الصورة (من غير شيل خلفية). دوس احفظ علشان تبان على باقي الأجهزة.')}
+  catch(e){phMsg('الصورة دي ما اتفتحتش: '+e.message,true)}}
+async function usePhotoUrl(url){url=(url||'').trim();if(!url)return;phMsg('بجيب الصورة…');
+  try{let blob=null;try{const r=await fetch(url);if(r.ok)blob=await r.blob()}catch(e){}
+    if(!blob){const im=await loadImg(url,true);const c=document.createElement('canvas');c.width=im.naturalWidth;c.height=im.naturalHeight;c.getContext('2d').drawImage(im,0,0);blob=await new Promise(r=>c.toBlob(r,'image/png'))}
+    await usePhotoBlob(blob)}
+  catch(e){phMsg('الموقع ده مش بيسمح بسحب الصورة منه من المتصفح (حماية). احفظ الصورة على جهازك والصقها أو ارفعها، أو ابعتها لي في الشات.',true)}}
+const phFile=document.createElement('input');phFile.type='file';phFile.accept='image/*';phFile.style.display='none';document.body.appendChild(phFile);
+phFile.onchange=()=>{const f=phFile.files&&phFile.files[0];phFile.value='';if(f)usePhotoBlob(f)};
+document.addEventListener('paste',e=>{if(!selId||/INPUT|TEXTAREA/.test((e.target||{}).tagName||''))return;const it=[...(e.clipboardData&&e.clipboardData.items||[])].find(i=>i.type.startsWith('image/'));if(it){usePhotoBlob(it.getAsFile());e.preventDefault()}});
+function updatePhoto(){const el=document.getElementById('photoBox');if(!el)return;const it=selId&&itemById(selId);if(!it){el.innerHTML='';return}
+  const a=it.args||{},has=!!a.img,g=furnMap.get(selId),pw=g&&g.userData.photoW;
+  el.innerHTML=`<h4>🖼 صورة حقيقية بدل المجسّم</h4><div class="note">ارفع صورة، أو الصقها، أو حط رابط صورة مباشر. الصورة بتحل محل القطعة في مكانها (بتتحفظ مع التصميم).</div>
+  <div class="chips" style="margin-top:6px"><button data-ph="pick">📷 ارفع صورة</button><button data-ph="paste">📋 الصق صورة</button></div>
+  <div class="row"><input id="phurl" placeholder="رابط الصورة (jpg أو png)" style="flex:2 1 160px;font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:7px"><button data-ph="url" class="dimb" style="min-width:64px">هاتها</button></div>
+  <div class="tg"><label for="phbg">شيل الخلفية البيضاء/السادة تلقائي</label><input type="checkbox" id="phbg" checked></div>
+  ${has?`<div class="row"><label>عرض الصورة</label><span style="display:flex;gap:6px;align-items:center"><button data-ph="pw:-.1" class="dimb">−10</button><b style="min-width:46px;text-align:center">${pw?pw.toFixed(2):'…'}</b><button data-ph="pw:.1" class="dimb">+10</button></span></div>
+  <div class="row"><label>ارتفاع عن الأرض</label><span style="display:flex;gap:6px;align-items:center"><button data-ph="py:-.05" class="dimb">−5</button><b style="min-width:46px;text-align:center">${(a.py||0).toFixed(2)}</b><button data-ph="py:.05" class="dimb">+5</button></span></div>
+  <div class="chips"><button data-ph="bill" class="${(a.bill==null?!BILL_OFF.includes(it.type):a.bill)?'on':''}">تواجهني دايمًا</button><button data-ph="del">رجّع المجسّم الأصلي</button></div>`:''}
+  <div class="note" id="phMsg" style="margin-top:6px"></div>
+  <div class="note" style="margin-top:6px">عايز أولّد الصورة بالذكاء الاصطناعي؟ ابعتلي الوصف أو الرابط في الشات وأنا أحطها لك.</div>`}
+async function uploadPhotos(){const todo=FURN.filter(i=>i.args&&typeof i.args.img==='string'&&i.args.img.startsWith('local:'));
+  for(const it of todo){const id=it.args.img.slice(6),d=photoSrc(it.args.img);if(!d)throw new Error('صورة ناقصة على الجهاز ده');
+    const path='apartments/'+APT+'/photos/'+id+'.png',r=await fetch(apiUrl(path),{method:'PUT',headers:Object.assign({'Content-Type':'application/json'},GH_H()),body:JSON.stringify({message:'Photo '+id,content:d.split(',')[1],branch:GH.branch})});
+    if(!r.ok&&r.status!==422)throw await httpErr(r);
+    photoMem['photos/'+id+'.png']=d;patchItem(it.id,{args:Object.assign({},it.args,{img:'photos/'+id+'.png'})})}
+  return todo.length}
 /* ----- edits: stored locally, shareable by link ----- */
 const E0=()=>({mod:{},del:[],add:[],w:[],r:{}});
 let edits=E0();
@@ -550,7 +624,7 @@ function roomName(x,z){const r=roomAt(x,z);return r?r.n:'برّه'}
 function updateSelInfo(){const el=document.getElementById('selInfo');if(!el)return;const it=selId&&itemById(selId);
   el.innerHTML=it?`<b>${esc2(it.name)}</b><br><span class="note">${roomName(it.x,it.z)} • X ${it.x.toFixed(2)} • Z ${it.z.toFixed(2)} • زاوية ${Math.round(((it.ry||0)*180/Math.PI+360)%360)}°</span>`:'<span class="note">اضغط على أي قطعة عفش في الشقة، أو اختارها من القايمة.</span>';updateDims()}
 const DIMS={sofaL:[['w','العرض',3],['d','العمق',1.7]],ac:[['y','الارتفاع عن الأرض',2.15]],tv:[['y','الارتفاع عن الأرض',1.0]],hood:[['w','العرض',.9],['y','الارتفاع',1.65]],fridge:[['w','العرض',.8],['h','الارتفاع',1.85]],wardrobe:[['w','العرض',2],['d','العمق',.6],['h','الارتفاع',2.55]],glasswardrobe:[['w','العرض',2.4],['d','العمق',.6],['h','الارتفاع',2.55]],glasspanel:[['w','العرض',1.5],['h','الارتفاع',2.6]],sofa:[['w','العرض',2.2],['d','العمق',.95]],tvUnit:[['w','العرض',2]],desk:[['w','العرض',1.5],['d','العمق',.7]],dtable:[['w','العرض',2.4],['d','العمق',1]],ctable:[['w','العرض',1.1],['d','العمق',.65]],rug:[['w','العرض',2],['d','العمق',1.5]],bed:[['w','العرض',1.6],['l','الطول',2]],mirror:[['w','العرض',.8],['h','الارتفاع',1.9]],vanity:[['w','العرض',.9]],shower:[['w','العرض',.9],['d','العمق',.9]],curtain:[['w','العرض',1.6]],boxitem:[['w','العرض',1],['d','العمق',.5],['h','الارتفاع',.8]]};
-function updateDims(){updateBrand();const el=document.getElementById('dimBox');if(!el)return;const it=selId&&itemById(selId),D=it&&DIMS[it.type];
+function updateDims(){updateBrand();updatePhoto();const el=document.getElementById('dimBox');if(!el)return;const it=selId&&itemById(selId),D=it&&DIMS[it.type];
   if(!D){el.innerHTML='';return}
   const a=it.args||{};
   el.innerHTML='<h4>الأبعاد (متر)</h4>'+D.map(([k,l,def])=>{const v=a[k]!=null?a[k]:def;return `<div class="row"><label>${l}</label><span style="display:flex;gap:6px;align-items:center"><button data-dim="${k}:-.1" class="dimb">−10</button><button data-dim="${k}:-.01" class="dimb">−1</button><b style="min-width:46px;text-align:center">${(+v).toFixed(2)}</b><button data-dim="${k}:.01" class="dimb">+1</button><button data-dim="${k}:.1" class="dimb">+10</button></span></div>`}).join('')+'<div class="note">الأرقام بالسنتيمتر (−10 يعني ناقص 10 سم).</div>'}
@@ -821,6 +895,7 @@ async function syncSave(note){
     for(let a=0;a<3&&!ok;a++){
       const cur=await ghGet(ghPath());
       if(cur&&cur.sha!==baseSha&&!forceNext){applyModel(cur.json);setBase(cur.sha);refreshAll();toast('لقيت تعديلات جديدة من جهاز تاني ودمجتها مع تعديلاتك')}
+      if(await uploadPhotos())syncMsg('رفعت الصور…');
       const m=bakedModel(),r=await ghPut(ghPath(),m,cur&&cur.sha,'Save '+APT+' by '+(whoName()||'?')+' ('+deviceName()+')');
       if(r.status===409||r.status===422)continue;if(!r.ok)throw await httpErr(r);
       const res=await r.json();setBase(res.content.sha);
@@ -1037,7 +1112,7 @@ function renderTabs(){
     <div class="dpad"><span class="sp"></span><button data-mv="f" aria-label="لقدام (ناحية بعيد عنك)">▲</button><span class="sp"></span><button data-mv="l" aria-label="شمال">◀</button><button data-mv="b" aria-label="لورا">▼</button><button data-mv="r" aria-label="يمين">▶</button></div>
     <div class="chips"><button data-rot="-0.2618">⟲ 15°</button><button data-rot="0.2618">⟳ 15°</button><button data-rot="1.5708">↻ 90°</button><button data-act="dup">نسخة</button><button data-act="del">شيل</button><button data-act="reset">رجّع القطعة</button></div>
     <div class="chips" style="margin-top:6px"><button data-act="snapwall">ألصقه بأقرب حيطة</button><button data-act="straight">عدّل الزاوية (مستقيم)</button></div>
-    <div id="brandBox"></div><div id="dimBox"></div>
+    <div id="photoBox"></div><div id="brandBox"></div><div id="dimBox"></div>
     <h4>انقلها لجدار في نفس الغرفة</h4>
     <div class="chips">${[1,2,3,4].map(n=>`<button data-towall="${n}">جدار ${n} (${WN_NAMES[n]})</button>`).join('')}<button data-act="centerwall">وسّطها على الجدار اللي جنبها</button><button data-act="fitwall">املا عرض الجدار (أوتوماتيك)</button></div>
     <div class="note">الجدران مرقّمة مع عقارب الساعة: 1 هو اللي فوق في الرسم، 2 يمين، 3 تحت، 4 شمال. الأرقام بتظهر على جدران الغرفة، وتقدر تضغط على الرقم نفسه علشان تنقل القطعة له.</div>
@@ -1133,6 +1208,15 @@ $('body').addEventListener('click',e=>{
   if(b.dataset.add){addItem(b.dataset.add);renderTabs();return}
   if(b.dataset.dp){const [k,v]=b.dataset.dp.split(':'),w=selWall&&WALLS.find(q=>q.id===selWall);if(!w||!selOp)return;
     const val=v==='-'?null:(k==='style'||k==='col')?v:+v;wallOp({t:'modop',wall:w.id,oid:selOp,patch:{[k]:val}});return}
+  if(b.dataset.ph){const k=b.dataset.ph,it=selId&&itemById(selId);
+    if(k==='pick'){phFile.click();return}
+    if(k==='paste'){(async()=>{try{const items=await navigator.clipboard.read();for(const i of items){const t=i.types.find(x=>x.startsWith('image/'));if(t){await usePhotoBlob(await i.getType(t));return}}phMsg('مفيش صورة في الحافظة. انسخ صورة الأول.',true)}catch(e){phMsg('الجهاز ما سمحش بالقراءة من الحافظة. اضغط مطوّلاً وإلصق (Ctrl+V) على الصفحة، أو استخدم «ارفع صورة».',true)}})();return}
+    if(k==='url'){usePhotoUrl((document.getElementById('phurl')||{}).value);return}
+    if(!it)return;const a=Object.assign({},it.args||{});
+    if(k==='del'){delete a.img;delete a.pw;delete a.py;delete a.bill;patchItem(selId,{args:a});refurnish();updateDims();return}
+    if(k==='bill'){a.bill=!(a.bill==null?!BILL_OFF.includes(it.type):a.bill);patchItem(selId,{args:a});refurnish();updateDims();return}
+    const [kk,v]=k.split(':'),g=furnMap.get(selId);if(kk==='pw'){a.pw=+Math.max(.15,(a.pw||(g&&g.userData.photoW)||1)+ +v).toFixed(3)}else if(kk==='py'){a.py=+Math.max(0,(a.py||0)+ +v).toFixed(3)}
+    patchItem(selId,{args:a});refurnish();updateDims();return}
   if(b.dataset.bp){const [k,v]=b.dataset.bp.split(':'),it=selId&&itemById(selId);if(!it)return;patchItem(selId,{args:Object.assign({},it.args||{},{[k]:isNaN(+v)?v:+v})});refurnish();updateDims();return}
   if(b.dataset.dim){const [k,v]=b.dataset.dim.split(':');dimStep(k,+v);return}
   if(b.dataset.rk||b.dataset.rm||b.dataset.rk2){roomAct(b);return}
@@ -1207,7 +1291,7 @@ function boot(){
   setMode('walk');pos.set(8.45,P.eye,7.6);yaw=-.55;ST.spin=0;syncSpin();applyCam();hud();
   if(innerWidth<760)sheetOpen(false);
   let last=performance.now();
-  (function loop(now){requestAnimationFrame(loop);const raw=(now-last)/1000,dt=Math.min(.05,raw);last=now;perf(raw);step(dt);drawMini();applyCam();if(mode==='walk'&&(mv.x||mv.y||glide||ST.spin||(++hudN%10===0)))hud();if(boxHelper)boxHelper.update();updateLabels();renderer.render(scene,cam)})(last);
+  (function loop(now){requestAnimationFrame(loop);const raw=(now-last)/1000,dt=Math.min(.05,raw);last=now;perf(raw);step(dt);billUpdate();drawMini();applyCam();if(mode==='walk'&&(mv.x||mv.y||glide||ST.spin||(++hudN%10===0)))hud();if(boxHelper)boxHelper.update();updateLabels();renderer.render(scene,cam)})(last);
   $('bSave').onclick=()=>syncSave();updateSaveBtn();setTimeout(syncPoll,2500);
   window.__walk={colliders:()=>colliders,labelHidden,wallGrp:()=>wallGrp,fitWall,syncPoll,hasEdits,setRoom,restoreBackup,listBackups,dimStep,bakedModel,syncSave,syncPull,moveToRoomWall,putOnWall,snapItemToWall,itemById,get selId(){return selId},get selWall(){return selWall},get lastHit(){return lastHit},get pitch(){return pitch},set pitch(v){pitch=v},get pos(){return pos},get yaw(){return yaw},set yaw(v){yaw=v},get glide(){return glide},toast,wallOp,wallAction,OPINFO,get WALLS(){return WALLS},get ROOMS(){return ROOMS},setSel:(w,o)=>{selWall=w;selOp=o||null;wallHL();renderWallPanel()},ST,P,goPreset,setMode,rebuild,get Q(){return Q},cam,scene,get FURN(){return FURN},get edits(){return edits},selectItem,nudge,rotItem,addItem,delItem,orbit,focusRoom,orbitZoom,get mode(){return mode},enterHere,refurnish,furnMap};
 }

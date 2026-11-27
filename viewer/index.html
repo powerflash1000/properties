@@ -514,15 +514,16 @@ function photoSwap(g,it,bb){const a=it.args||{},src=photoSrc(a.img);if(!src)retu
   const bw=Math.max(.25,bb.max.x-bb.min.x),bh=Math.max(.25,bb.max.y);
   loadPhotoTex(src).then(tex=>{if(!g.parent)return;const im=tex.image,ar=im.width/im.height;
     const pw=a.pw||Math.min(bw,bh*ar),ph=pw/ar;
-    while(g.children.length)g.remove(g.children[0]);
-    const holder=new T.Group();g.add(holder);
+    const orig=g.children.slice();
+    const holder=new T.Group();holder.visible=false;g.add(holder);
     const m=new T.Mesh(new T.PlaneGeometry(pw,ph),new T.MeshBasicMaterial({map:tex,transparent:true,alphaTest:.04,side:T.DoubleSide,toneMapped:false}));
     m.position.y=ph/2+(a.py||0);holder.add(m);
     const sh=new T.Mesh(new T.CircleGeometry(.5,24),new T.MeshBasicMaterial({color:0x000000,transparent:true,opacity:.22,depthWrite:false}));sh.rotation.x=-Math.PI/2;sh.scale.set(pw*.9,Math.max(.12,pw*.18),1);sh.position.y=.006;holder.add(sh);
     const bill=a.bill==null?!BILL_OFF.includes(it.type):!!a.bill;
-    if(bill)billList.push({g,m});g.userData.photoW=pw;g.userData.photoH=ph;
+    billList.push({g,m,orig,holder,bill});g.userData.photoW=pw;g.userData.photoH=ph;
     if(selId===it.id){highlight();updatePhoto()}}).catch(()=>{})}
-function billUpdate(){for(const b of billList){if(!b.g.parent)continue;b.m.rotation.y=Math.atan2(cam.position.x-b.g.position.x,cam.position.z-b.g.position.z)-b.g.rotation.y}}
+function billUpdate(){const low=mode==='walk'||orbit.el<.8;for(const b of billList){if(!b.g.parent)continue;if(b.holder.visible!==low){b.holder.visible=low;b.orig.forEach(o=>{o.visible=!low})}
+  if(low&&b.bill)b.m.rotation.y=Math.atan2(cam.position.x-b.g.position.x,cam.position.z-b.g.position.z)-b.g.rotation.y}}
 async function processImage(img,removeBg){const MAX=900,sc=Math.min(1,MAX/Math.max(img.naturalWidth||img.width,img.naturalHeight||img.height)),w=Math.round((img.naturalWidth||img.width)*sc),h=Math.round((img.naturalHeight||img.height)*sc);
   const c=document.createElement('canvas');c.width=w;c.height=h;const g=c.getContext('2d',{willReadFrequently:true});g.drawImage(img,0,0,w,h);
   let removed=false;

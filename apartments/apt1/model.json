@@ -1069,7 +1069,9 @@
    "ry": 0,
    "args": {
     "w": 2.4,
-    "d": 1
+    "d": 1,
+    "img": "photos/din-table.png",
+    "pw": 2.4
    },
    "when": {
     "layout": "din",
@@ -1086,6 +1088,10 @@
    "when": {
     "layout": "din",
     "v": 0
+   },
+   "args": {
+    "img": "photos/din-chair.png",
+    "pw": 0.58
    }
   },
   {
@@ -1098,6 +1104,10 @@
    "when": {
     "layout": "din",
     "v": 0
+   },
+   "args": {
+    "img": "photos/din-chair.png",
+    "pw": 0.58
    }
   },
   {
@@ -1110,6 +1120,10 @@
    "when": {
     "layout": "din",
     "v": 0
+   },
+   "args": {
+    "img": "photos/din-chair.png",
+    "pw": 0.58
    }
   },
   {
@@ -1122,6 +1136,10 @@
    "when": {
     "layout": "din",
     "v": 0
+   },
+   "args": {
+    "img": "photos/din-chair.png",
+    "pw": 0.58
    }
   },
   {
@@ -1134,6 +1152,10 @@
    "when": {
     "layout": "din",
     "v": 0
+   },
+   "args": {
+    "img": "photos/din-chair.png",
+    "pw": 0.58
    }
   },
   {
@@ -1146,6 +1168,10 @@
    "when": {
     "layout": "din",
     "v": 0
+   },
+   "args": {
+    "img": "photos/din-chair.png",
+    "pw": 0.58
    }
   },
   {
@@ -1158,6 +1184,10 @@
    "when": {
     "layout": "din",
     "v": 0
+   },
+   "args": {
+    "img": "photos/din-chair.png",
+    "pw": 0.58
    }
   },
   {
@@ -1170,6 +1200,10 @@
    "when": {
     "layout": "din",
     "v": 0
+   },
+   "args": {
+    "img": "photos/din-chair.png",
+    "pw": 0.58
    }
   },
   {

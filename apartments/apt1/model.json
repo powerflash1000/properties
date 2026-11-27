@@ -1159,6 +1159,10 @@
    "when": {
     "layout": "din",
     "v": 0
+   },
+   "args": {
+    "kind": "highback",
+    "col": "beige"
    }
   },
   {
@@ -1171,6 +1175,10 @@
    "when": {
     "layout": "din",
     "v": 0
+   },
+   "args": {
+    "kind": "highback",
+    "col": "beige"
    }
   },
   {
@@ -1265,12 +1273,12 @@
   {
    "id": "din-buffet",
    "name": "بوفيه السفرة",
-   "type": "wardrobe",
+   "type": "sideboard",
    "x": 3.2,
    "z": 0.55,
    "ry": 0,
    "args": {
-    "w": 1.5,
+    "w": 1.8,
     "d": 0.45,
     "h": 0.85
    }
@@ -1281,7 +1289,10 @@
    "type": "chandelier",
    "x": 4.85,
    "z": 2.2,
-   "ry": 0
+   "ry": 0,
+   "args": {
+    "style": "cloud"
+   }
   },
   {
    "id": "din-curtain",
@@ -2163,6 +2174,34 @@
    "args": {
     "w": 0.4,
     "l": 2
+   }
+  },
+  {
+   "id": "din-mirror",
+   "name": "مراية دايرية مضيئة",
+   "type": "rmirror",
+   "x": 3.2,
+   "z": 0.31,
+   "ry": 0,
+   "args": {
+    "r": 0.5,
+    "y": 1.5
+   },
+   "when": {
+    "layout": "din",
+    "v": 0
+   }
+  },
+  {
+   "id": "din-center",
+   "name": "تنسيقة الترابيزة",
+   "type": "centerpiece",
+   "x": 4.85,
+   "z": 2.2,
+   "ry": 0,
+   "when": {
+    "layout": "din",
+    "v": 0
    }
   }
  ]

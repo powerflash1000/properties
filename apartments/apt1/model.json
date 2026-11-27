@@ -319,7 +319,7 @@
      "into": "kit",
      "hs": -1,
      "style": "slat",
-     "open": 0,
+     "open": 1,
      "col": "black"
     }
    ]
@@ -616,7 +616,7 @@
      "w": 0.8,
      "ty": "door",
      "into": "bA",
-     "open": 0
+     "open": 1
     }
    ]
   },
@@ -1131,7 +1131,7 @@
    "type": "chairB",
    "x": 5.6499999999999995,
    "z": 1.5,
-   "ry": 0,
+   "ry": 4.7124,
    "when": {
     "layout": "din",
     "v": 0

@@ -332,13 +332,13 @@ function sofaL(w=3.0,d=1.7,m){const g=new T.Group(),f=F();m=m||f.fab;const sd=.9
   const n=Math.max(2,Math.round((w-sd)/.8));for(let i=0;i<n;i++)sbox((w-sd-.3)/n-.02,.15,sd-.4,-w/2+.2+((w-sd-.3)/n)*(i+.5),.5,-d/2+.5,m,0,g,.06);
   sbox(sd-.4,.15,d-sd-.1,w/2-sd/2,.5,sd/2-.05,m,0,g,.06);
   for(const [x,z] of[[-w/2+.55,-d/2+.3],[w/2-.6,-d/2+.3],[w/2-.35,d/2-.35]])sbox(.42,.4,.14,x,.55,z,f.fab2,0,g,.06).rotation.x=-.2;return g}
-function sofa(w=2.2,d=.95,m){const g=new T.Group(),f=F();m=m||f.fab;
+function sofa(w=2.2,d=.95,m){const g=new T.Group(),f=F();m=m||bouclM(fabCol(.55),[1.6,1.6]);const m2=bouclM(fabCol(.3),[1,1]);
   box(w,.1,d,0,.08,0,f.dark,0,g);sbox(w,.26,d-.06,0,.16,0,m,0,g,.05);sbox(w,.52,.24,0,.4,-d/2+.12,m,0,g,.07);
   sbox(.2,.34,d,-w/2+.1,.42,0,m,0,g,.06);sbox(.2,.34,d,w/2-.1,.42,0,m,0,g,.06);
   const n=Math.max(2,Math.round(w/.8));for(let i=0;i<n;i++)sbox((w-.4)/n-.02,.15,d-.4,-w/2+.2+((w-.4)/n)*(i+.5),.5,.1,m,0,g,.06);
-  for(let i=0;i<2;i++)sbox(.42,.4,.14,(i?1:-1)*(w/2-.6),.55,-d/2+.34,f.fab2,0,g,.06).rotation.x=-.2;
+  for(let i=0;i<2;i++)sbox(.42,.4,.14,(i?1:-1)*(w/2-.6),.55,-d/2+.34,m2,0,g,.06).rotation.x=-.2;
   return g}
-function armchair(m){const g=sofa(.9,.85,m||F().fab2);return g}
+function armchair(m){const g=sofa(.9,.85,m||bouclM(fabCol(.3),[1,1]));return g}
 function ctable(w=1.1,d=.65,h=.4){const g=new T.Group(),f=F();box(w,.04,d,0,h-.04,0,f.woodL,0,g);box(w-.2,.02,d-.2,0,.08,0,f.dark,0,g);for(const sx of[-1,1])for(const sz of[-1,1])box(.04,h-.04,.04,sx*(w/2-.05),0,sz*(d/2-.05),f.metal,0,g);return g}
 /* ----- product catalog (brands, kinds, sizes) ----- */
 const BRAND_STYLE={sony:['SONY','#ffffff','#111214',1],lg:['LG','#ffffff','#a50034',0],samsung:['SAMSUNG','#ffffff','#1428a0',1],tcl:['TCL','#ffffff','#e60012',1],hisense:['Hisense','#ffffff','#00a0a0',1],
@@ -391,9 +391,12 @@ function tvUnit(w=2.0,a){a=a||{};const g=new T.Group(),f=F(),tw=Math.min(1.9,Mat
   box(.5,.012,.14,0,.45,.03,mat('#16171a',.4,.6),0,g);box(.1,.012,.1,0,.44,-.1,mat('#16171a',.4,.6),0,g);
   for(const sx of[-1,1]){box(.06,1.3,.06,sx*(w/2+.18),.4,-.12,f.metal,0,g)}
   return g}
-function rug(w,d,col){const g=new T.Group();box(w,.015,d,0,0,0,col||F().rug,0,g).castShadow=false;return g}
+function rug(w,d,col){const g=new T.Group(),m=col||bouclM(mix(pal().a,'#ffffff',.68),[Math.max(1,w*1.3),Math.max(1,d*1.3)]);const r=sbox(w,.022,d,0,0,0,m,0,g,.01);r.castShadow=false;return g}
 const bouclCache={};
 function bouclTex(col){if(bouclCache[col])return bouclCache[col];const t=ctex((g,sz)=>{g.fillStyle=col;g.fillRect(0,0,sz,sz);for(let i=0;i<5200;i++){const x=rnd()*sz,y=rnd()*sz,r=2+rnd()*4;g.strokeStyle=rnd()>.5?'rgba(255,255,255,.28)':'rgba(70,50,30,.22)';g.lineWidth=1.4;g.beginPath();g.arc(x,y,r,rnd()*6,rnd()*6+2.6);g.stroke()}},256);t.repeat.set(2,2);return bouclCache[col]=t}
+const bouclMats={};
+function bouclM(col,rep2){const k=col+(rep2||'');if(bouclMats[k])return bouclMats[k];const t=bouclTex(col).clone();t.needsUpdate=true;if(rep2)t.repeat.set(rep2[0],rep2[1]);return bouclMats[k]=new T.MeshStandardMaterial({map:t,roughness:1,metalness:0})}
+const fabCol=(p=.55)=>mix(pal().a,'#ffffff',p);
 function chairB(col){const g=new T.Group(),fab=new T.MeshStandardMaterial({map:bouclTex(col||'#d2b79a'),roughness:1,metalness:0,side:T.DoubleSide}),gold=mat('#c9a24e',.28,.95);
   const seat=new T.Mesh(new T.CylinderGeometry(.27,.26,.1,32),fab);seat.position.y=.43;seat.castShadow=seat.receiveShadow=true;g.add(seat);
   const sc=new T.Mesh(new T.CylinderGeometry(.255,.255,.03,32),fab);sc.position.y=.485;g.add(sc);
@@ -432,10 +435,15 @@ function acUnit(w=.95){const g=new T.Group(),wm=mat('#f5f6f7',.35),dk=mat('#d6d9
   box(.04,.014,.01,w/2-.1,.2,.222,mat('#0a2a14',.3,0,{emissive:'#4cff8a',emissiveIntensity:.9}),0,g);
   box(.12,.025,.01,w/2-.28,.2,.222,mat('#20252a',.3),0,g);return g}
 const glowCache={};function glowM(c='#ffe2b0',i=2){const k=c+i;return glowCache[k]||(glowCache[k]=new T.MeshStandardMaterial({color:'#ffffff',emissive:c,emissiveIntensity:i,roughness:.4}))}
-function bed(w=1.6,l=2.0,hb=1.0){const g=new T.Group(),f=F();
-  box(w+.1,.3,l+.05,0,.1,0,f.wood,0,g);sbox(w,.22,l,0,.4,0,f.bedl,0,g,.05);sbox(w+.04,.14,l*.64,0,.6,l*.17,f.duvet,0,g,.06);
-  for(const s of[-1,1])sbox(.62,.16,.4,s*w*.24,.62,-l/2+.3,f.bedl,0,g,.07);
-  sbox(w+.3,hb,.1,0,.0,-l/2-.05,mat(mix(pal().a,'#000000',.1),.8),0,g,.04);return g}
+function bed(w=1.6,l=2.0,hb=1.0){const g=new T.Group(),f=F(),A=pal().a,fb=bouclM(mix(A,'#ffffff',.5),[w+.3,1]),fbD=bouclM(mix(A,'#000000',.08),[w+.1,1]),du=bouclM(mix(A,'#ffffff',.72),[w,l*.6]);
+  sbox(w+.12,.3,l+.06,0,.06,0,fbD,0,g,.05);
+  sbox(w,.2,l,0,.36,0,f.bedl,0,g,.05);
+  sbox(w+.05,.13,l*.66,0,.54,l*.17,du,0,g,.06);
+  sbox(w+.07,.05,.45,0,.665,l*.38,bouclM(mix(A,'#000000',.22),[w,.5]),0,g,.02);
+  for(const s of[-1,1]){sbox(.62,.17,.4,s*w*.24,.55,-l/2+.3,f.bedl,0,g,.07);sbox(.5,.16,.3,s*w*.24,.68,-l/2+.5,du,0,g,.07).rotation.x=-.45}
+  sbox(w+.3,hb,.13,0,.0,-l/2-.07,fb,0,g,.04);
+  const n=Math.max(5,Math.round((w+.3)/.2));for(let i=0;i<n;i++){const x=-(w+.3)/2+(i+.5)*(w+.3)/n;sbox((w+.3)/n-.03,hb-.28,.05,x,.16,-l/2-.01,fb,0,g,.025)}
+  return g}
 function nstand(){const g=new T.Group(),f=F();box(.45,.45,.38,0,.05,0,f.wood,0,g);box(.4,.01,.02,0,.35,.19,f.metal,0,g);cyl(.1,.02,0,.5,0,f.metal,g);cyl(.012,.28,0,.52,0,f.metal,g,6);cyl(.1,.15,0,.78,0,glowM('#fff0d0',.7),g);return g}
 function wardrobe(w,d=.6,h){h=h||P.ceil-.15;const g=new T.Group(),f=F();box(w,h,d,0,.05,0,f.cab,0,g);const n=Math.max(2,Math.round(w/.5));for(let i=0;i<n;i++){box(w/n-.02,h-.1,.02,-w/2+(i+.5)*w/n,.1,d/2,mix2(f.cab),0,g);box(.015,.3,.02,-w/2+(i+.5)*w/n+(i%2?-1:1)*w/n*.4,1.0,d/2+.01,f.metal,0,g)}return g}
 function glassWardrobe(w,d=.6,h){h=h||P.ceil-.15;const g=new T.Group(),f=F();

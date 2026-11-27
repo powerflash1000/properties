@@ -1070,8 +1070,7 @@
    "args": {
     "w": 2.4,
     "d": 1,
-    "img": "photos/din-table.png",
-    "pw": 2.4
+    "style": "pedestal"
    },
    "when": {
     "layout": "din",
@@ -1081,129 +1080,97 @@
   {
    "id": "din-chair-n0",
    "name": "كرسي السفرة شمال 1",
-   "type": "chair",
+   "type": "chairB",
    "x": 4.05,
    "z": 1.5,
    "ry": 0,
    "when": {
     "layout": "din",
     "v": 0
-   },
-   "args": {
-    "img": "photos/din-chair.png",
-    "pw": 0.58
    }
   },
   {
    "id": "din-chair-s0",
    "name": "كرسي السفرة جنوب 1",
-   "type": "chair",
+   "type": "chairB",
    "x": 4.05,
    "z": 2.9,
    "ry": 3.1416,
    "when": {
     "layout": "din",
     "v": 0
-   },
-   "args": {
-    "img": "photos/din-chair.png",
-    "pw": 0.58
    }
   },
   {
    "id": "din-chair-n1",
    "name": "كرسي السفرة شمال 2",
-   "type": "chair",
+   "type": "chairB",
    "x": 4.85,
    "z": 1.5,
    "ry": 0,
    "when": {
     "layout": "din",
     "v": 0
-   },
-   "args": {
-    "img": "photos/din-chair.png",
-    "pw": 0.58
    }
   },
   {
    "id": "din-chair-s1",
    "name": "كرسي السفرة جنوب 2",
-   "type": "chair",
+   "type": "chairB",
    "x": 4.85,
    "z": 2.9,
    "ry": 3.1416,
    "when": {
     "layout": "din",
     "v": 0
-   },
-   "args": {
-    "img": "photos/din-chair.png",
-    "pw": 0.58
    }
   },
   {
    "id": "din-chair-n2",
    "name": "كرسي السفرة شمال 3",
-   "type": "chair",
+   "type": "chairB",
    "x": 5.6499999999999995,
    "z": 1.5,
    "ry": 0,
    "when": {
     "layout": "din",
     "v": 0
-   },
-   "args": {
-    "img": "photos/din-chair.png",
-    "pw": 0.58
    }
   },
   {
    "id": "din-chair-s2",
    "name": "كرسي السفرة جنوب 3",
-   "type": "chair",
+   "type": "chairB",
    "x": 5.6499999999999995,
    "z": 2.9,
    "ry": 3.1416,
    "when": {
     "layout": "din",
     "v": 0
-   },
-   "args": {
-    "img": "photos/din-chair.png",
-    "pw": 0.58
    }
   },
   {
    "id": "din-chair-w",
    "name": "كرسي رأس الترابيزة غرب",
-   "type": "chair",
+   "type": "chairB",
    "x": 3.55,
    "z": 2.2,
    "ry": 1.5708,
    "when": {
     "layout": "din",
     "v": 0
-   },
-   "args": {
-    "img": "photos/din-chair.png",
-    "pw": 0.58
    }
   },
   {
    "id": "din-chair-e",
    "name": "كرسي رأس الترابيزة شرق",
-   "type": "chair",
+   "type": "chairB",
    "x": 6.15,
    "z": 2.2,
    "ry": -1.5708,
    "when": {
     "layout": "din",
     "v": 0
-   },
-   "args": {
-    "img": "photos/din-chair.png",
-    "pw": 0.58
    }
   },
   {

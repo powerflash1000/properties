@@ -392,8 +392,27 @@ function tvUnit(w=2.0,a){a=a||{};const g=new T.Group(),f=F(),tw=Math.min(1.9,Mat
   for(const sx of[-1,1]){box(.06,1.3,.06,sx*(w/2+.18),.4,-.12,f.metal,0,g)}
   return g}
 function rug(w,d,col){const g=new T.Group();box(w,.015,d,0,0,0,col||F().rug,0,g).castShadow=false;return g}
+const bouclCache={};
+function bouclTex(col){if(bouclCache[col])return bouclCache[col];const t=ctex((g,sz)=>{g.fillStyle=col;g.fillRect(0,0,sz,sz);for(let i=0;i<5200;i++){const x=rnd()*sz,y=rnd()*sz,r=2+rnd()*4;g.strokeStyle=rnd()>.5?'rgba(255,255,255,.28)':'rgba(70,50,30,.22)';g.lineWidth=1.4;g.beginPath();g.arc(x,y,r,rnd()*6,rnd()*6+2.6);g.stroke()}},256);t.repeat.set(2,2);return bouclCache[col]=t}
+function chairB(col){const g=new T.Group(),fab=new T.MeshStandardMaterial({map:bouclTex(col||'#d2b79a'),roughness:1,metalness:0,side:T.DoubleSide}),gold=mat('#c9a24e',.28,.95);
+  const seat=new T.Mesh(new T.CylinderGeometry(.27,.26,.1,32),fab);seat.position.y=.43;seat.castShadow=seat.receiveShadow=true;g.add(seat);
+  const sc=new T.Mesh(new T.CylinderGeometry(.255,.255,.03,32),fab);sc.position.y=.485;g.add(sc);
+  const back=new T.Mesh(new T.CylinderGeometry(.31,.275,.46,36,1,true,Math.PI*.42,Math.PI*1.16),fab);back.position.y=.72;back.castShadow=back.receiveShadow=true;g.add(back);
+  const back2=new T.Mesh(new T.CylinderGeometry(.285,.255,.44,36,1,true,Math.PI*.45,Math.PI*1.1),fab);back2.position.y=.72;g.add(back2);
+  const rim=new T.Mesh(new T.TorusGeometry(.298,.025,10,36,Math.PI*1.16),fab);rim.rotation.x=Math.PI/2;rim.rotation.z=Math.PI*.42;rim.position.y=.95;g.add(rim);
+  const ring=new T.Mesh(new T.TorusGeometry(.265,.011,8,40),gold);ring.rotation.x=Math.PI/2;ring.position.y=.375;g.add(ring);
+  for(const [x,z] of[[-.2,-.19],[.2,-.19],[-.17,.2],[.17,.2]]){const l=new T.Mesh(new T.CylinderGeometry(.012,.008,.38,10),gold);l.position.set(x*1.08,.19,z*1.08);l.rotation.z=-x*.45;l.rotation.x=z*.3;l.castShadow=true;g.add(l)}
+  return g}
 function chair(){const g=new T.Group(),f=F();sbox(.44,.06,.44,0,.45,0,f.fab,0,g,.025);sbox(.44,.5,.05,0,.5,-.2,f.fab,0,g,.025);for(const sx of[-1,1])for(const sz of[-1,1])box(.04,.45,.04,sx*.2,0,sz*.2,f.wood,0,g);return g}
-function dtable(w,d,round){const g=new T.Group(),f=F();
+const flutedTex={};
+function flutedMat(){if(flutedTex.m)return flutedTex.m;const t=ctex((g,sz)=>{for(let i=0;i<28;i++){const x=i*sz/28,gr=g.createLinearGradient(x,0,x+sz/28,0);gr.addColorStop(0,'#7a5d22');gr.addColorStop(.45,'#e6c777');gr.addColorStop(1,'#8a6a2a');g.fillStyle=gr;g.fillRect(x,0,sz/28+1,sz)}},256);return flutedTex.m=new T.MeshStandardMaterial({map:t,roughness:.32,metalness:.85,envMapIntensity:1.1})}
+function dtable(w,d,round,style){if(style==='pedestal'&&!round){const g=new T.Group(),r=Math.min(d/2,.5),sh=new T.Shape();const hw=w/2,hd=d/2;sh.moveTo(-hw+r,-hd);sh.lineTo(hw-r,-hd);sh.absarc(hw-r,-hd+r,r,-Math.PI/2,0,false);sh.lineTo(hw,hd-r);sh.absarc(hw-r,hd-r,r,0,Math.PI/2,false);sh.lineTo(-hw+r,hd);sh.absarc(-hw+r,hd-r,r,Math.PI/2,Math.PI,false);sh.lineTo(-hw,-hd+r);sh.absarc(-hw+r,-hd+r,r,Math.PI,Math.PI*1.5,false);
+    const geo=new T.ExtrudeGeometry(sh,{depth:.045,bevelEnabled:true,bevelThickness:.006,bevelSize:.006,bevelSegments:2});geo.rotateX(-Math.PI/2);
+    const top=new T.Mesh(geo,stoneMat(1));top.position.y=.7;top.castShadow=top.receiveShadow=true;g.add(top);
+    const gold=mat('#c9a24e',.3,.95),rimM=new T.Mesh(new T.ExtrudeGeometry(sh,{depth:.012,bevelEnabled:false}),gold);rimM.geometry.rotateX(-Math.PI/2);rimM.position.y=.693;g.add(rimM);
+    for(const sx of[-1,1]){const b=new T.Mesh(new T.CylinderGeometry(.27,.27,.68,40),flutedMat());b.position.set(sx*w*.27,.34,0);b.castShadow=b.receiveShadow=true;g.add(b);const pl=new T.Mesh(new T.CylinderGeometry(.3,.3,.02,40),gold);pl.position.set(sx*w*.27,.01,0);g.add(pl)}
+    return g}
+  const g=new T.Group(),f=F();
   if(round){cyl(w/2,.05,0,.72,0,f.woodL,g,36);cyl(.08,.72,0,0,0,f.wood,g);cyl(.35,.04,0,0,0,f.wood,g)}
   else{box(w,.05,d,0,.72,0,ST.stone&&!f._woodTop?f.counter:f.woodL,0,g);for(const sx of[-1,1])box(.08,.72,d-.2,sx*(w/2-.15),0,0,f.metal,0,g);for(const sx of[-1,1])box(.5,.03,d-.3,sx*(w/2-.2),.01,0,f.metal,0,g)}return g}
 function chandelier(st){st=st||ST.chand||'rings';const g=new T.Group(),f=F(),gm=()=>glowM('#ffe2b0',2.2),gold=mat('#c8a24a',.25,.95);
@@ -472,7 +491,7 @@ function shower(w=.9,d=.9){const g=new T.Group(),f=F();box(w,.06,d,0,0,0,f.white
 const mirrorM=()=>mat('#e4eef3',.08,0,{emissive:'#7f93a1',emissiveIntensity:.45});
 const BUILD={
  sofa:a=>sofa(a.w||2.2,a.d||.95),sofaL:a=>sofaL(a.w||3,a.d||1.7),armchair:()=>armchair(),ctable:a=>ctable(a.w||1.1,a.d||.65,a.h||.4),tvUnit:a=>tvUnit(a.w||2,a),tv:a=>{const g=new T.Group(),t=tvObj(a.inch||65,a.brand||'samsung',a.mount||'wall');t.position.y=a.y==null?(a.mount==='stand'?.8:1.0):a.y;g.add(t);return g},fridge:a=>fridgeObj(a),hood:a=>hoodObj(a),rug:a=>rug(a.w||2,a.d||1.5),
- chair:()=>chair(),dtable:a=>dtable(a.w||2.4,a.d||1,!!a.round),chandelier:a=>chandelier(a.style),ac:a=>{const g=new T.Group(),u=acObj(a);u.position.y=a.y==null?(a.kind==='floor'?0:a.kind==='cassette'?P.ceil-.2:2.15):a.y;g.add(u);return g},bed:a=>bed(a.w||1.6,a.l||2,a.hb||1),nstand:()=>nstand(),
+ chair:()=>chair(),dtable:a=>dtable(a.w||2.4,a.d||1,!!a.round,a.style),chairB:a=>chairB(a.col),chandelier:a=>chandelier(a.style),ac:a=>{const g=new T.Group(),u=acObj(a);u.position.y=a.y==null?(a.kind==='floor'?0:a.kind==='cassette'?P.ceil-.2:2.15):a.y;g.add(u);return g},bed:a=>bed(a.w||1.6,a.l||2,a.hb||1),nstand:()=>nstand(),
  wardrobe:a=>wardrobe(a.w||2,a.d||.6,a.h),glasswardrobe:a=>glassWardrobe(a.w||2.4,a.d||.6,a.h),glasspanel:a=>glassPanel(a.w||1.5,a.h),desk:a=>desk(a.w||1.5,a.d||.7),plant:a=>plant(a.h||1.1,a.s||1),flamp:()=>flamp(),
  curtain:a=>curtain(a.w||1.6,0,0,!!a.vert),toilet:()=>toilet(),vanity:a=>vanity(a.w||.9),shower:a=>shower(a.w||.9,a.d||.9),
  mirror:a=>{const g=new T.Group();box(a.t||.04,a.h||1.9,a.w||.8,0,a.y==null?.05:a.y,0,mirrorM(),0,g);return g},
@@ -486,8 +505,8 @@ const BUILD={
  tbl:()=>{const g=new T.Group(),f=F();cyl(.35,.04,0,.7,0,f.metal,g);cyl(.02,.7,0,0,0,f.metal,g,6);return g},
  mat:()=>{const g=new T.Group();box(.9,.015,.6,0,0,0,mat('#5b4a3a',1),0,g);return g},
 };
-const TYPE_NAMES={sofa:'كنبة',sofaL:'كنبة L',armchair:'فوتيل',ctable:'ترابيزة',tvUnit:'وحدة تلفزيون',rug:'سجادة',chair:'كرسي',dtable:'ترابيزة سفرة',chandelier:'نجفة',bed:'سرير',nstand:'كومودينو',ac:'تكييف',tv:'تلفزيون',fridge:'تلاجة',hood:'شفاط',wardrobe:'دولاب',glasswardrobe:'دولاب زجاج مضيء',glasspanel:'حاجز زجاج',desk:'مكتب',plant:'نبتة',flamp:'أباجورة'};
-const ADDABLE=['sofa','armchair','ctable','bed','sofaL','tv','fridge','ac','hood','wardrobe','glasswardrobe','glasspanel','desk','chair','dtable','plant','flamp','rug','tvUnit','nstand','chandelier'];
+const TYPE_NAMES={sofa:'كنبة',chairB:'كرسي بيج منحني',sofaL:'كنبة L',armchair:'فوتيل',ctable:'ترابيزة',tvUnit:'وحدة تلفزيون',rug:'سجادة',chair:'كرسي',dtable:'ترابيزة سفرة',chandelier:'نجفة',bed:'سرير',nstand:'كومودينو',ac:'تكييف',tv:'تلفزيون',fridge:'تلاجة',hood:'شفاط',wardrobe:'دولاب',glasswardrobe:'دولاب زجاج مضيء',glasspanel:'حاجز زجاج',desk:'مكتب',plant:'نبتة',flamp:'أباجورة'};
+const ADDABLE=['sofa','armchair','ctable','bed','chairB','sofaL','tv','fridge','ac','hood','wardrobe','glasswardrobe','glasspanel','desk','chair','dtable','plant','flamp','rug','tvUnit','nstand','chandelier'];
 const ADD_ARGS={sofa:{w:2.2},ctable:{w:1,d:.6},bed:{w:1.6,l:2},wardrobe:{w:2},glasswardrobe:{w:2.4},glasspanel:{w:1.5},desk:{w:1.4,d:.7},dtable:{w:2,d:.9},plant:{h:1.2},rug:{w:2,d:1.4},tvUnit:{w:1.6}};
 function frontArrow(g){
   const bb=new T.Box3().setFromObject(g),m=new T.MeshBasicMaterial({color:'#ffcc00',depthTest:false,transparent:true,opacity:.95});

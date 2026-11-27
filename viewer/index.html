@@ -17,6 +17,7 @@ canvas#c{position:absolute;inset:0;width:100%;height:100%;display:block;outline:
 button:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid var(--amber);outline-offset:2px}
 .dock{position:absolute;left:50%;transform:translateX(-50%);bottom:calc(env(safe-area-inset-bottom,0px) + 10px);display:flex;gap:8px;direction:rtl;z-index:30}
 .dock button{font-size:15px;padding:10px 14px}
+.dock button:disabled{opacity:.42}
 .dock button.warn{background:var(--amber);color:#1a1200;border-color:var(--amber);font-weight:700}
 .dimb{min-width:44px}
 .stick{position:absolute;left:max(18px,env(safe-area-inset-left,0px));bottom:calc(env(safe-area-inset-bottom,0px) + 18px);width:132px;height:132px;border-radius:50%;background:rgba(18,24,33,.45);border:2px solid rgba(255,255,255,.22);touch-action:none}
@@ -87,6 +88,7 @@ td input{width:90px;font:inherit;color:var(--ink);background:var(--bg);border:1p
     <button id="bLevel">👁 أفقي</button>
     <button id="bMode">منظور علوي</button>
     <button id="bShot">لقطة</button>
+    <button id="bUndo" disabled>↩ تراجع</button>
     <button id="bSave">💾 احفظ</button>
     <button id="bOpt" class="on">خيارات</button>
   </div>
@@ -522,7 +524,7 @@ function photoSwap(g,it,bb){const a=it.args||{},src=photoSrc(a.img);if(!src)retu
     const bill=a.bill==null?!BILL_OFF.includes(it.type):!!a.bill;
     billList.push({g,m,orig,holder,bill});g.userData.photoW=pw;g.userData.photoH=ph;
     if(selId===it.id){highlight();updatePhoto()}}).catch(()=>{})}
-function billUpdate(){const low=mode==='walk'||orbit.el<.8;for(const b of billList){if(!b.g.parent)continue;if(b.holder.visible!==low){b.holder.visible=low;b.orig.forEach(o=>{o.visible=!low})}
+function billUpdate(){const low=mode==='walk'||orbit.el<1.25;for(const b of billList){if(!b.g.parent)continue;if(b.holder.visible!==low){b.holder.visible=low;b.orig.forEach(o=>{o.visible=!low})}
   if(low&&b.bill)b.m.rotation.y=Math.atan2(cam.position.x-b.g.position.x,cam.position.z-b.g.position.z)-b.g.rotation.y}}
 async function processImage(img,removeBg){const MAX=900,sc=Math.min(1,MAX/Math.max(img.naturalWidth||img.width,img.naturalHeight||img.height)),w=Math.round((img.naturalWidth||img.width)*sc),h=Math.round((img.naturalHeight||img.height)*sc);
   const c=document.createElement('canvas');c.width=w;c.height=h;const g=c.getContext('2d',{willReadFrequently:true});g.drawImage(img,0,0,w,h);
@@ -559,6 +561,10 @@ async function usePhotoUrl(url){url=(url||'').trim();if(!url)return;phMsg('بج�
 const phFile=document.createElement('input');phFile.type='file';phFile.accept='image/*';phFile.style.display='none';document.body.appendChild(phFile);
 phFile.onchange=()=>{const f=phFile.files&&phFile.files[0];phFile.value='';if(f)usePhotoBlob(f)};
 document.addEventListener('paste',e=>{if(!selId||/INPUT|TEXTAREA/.test((e.target||{}).tagName||''))return;const it=[...(e.clipboardData&&e.clipboardData.items||[])].find(i=>i.type.startsWith('image/'));if(it){usePhotoBlob(it.getAsFile());e.preventDefault()}});
+let photoIdx=null;
+async function loadPhotoIdx(){if(photoIdx)return photoIdx;try{const r=await fetch('../apartments/'+APT+'/photos/index.json?t='+Date.now());photoIdx=r.ok?await r.json():[]}catch(e){photoIdx=[]}return photoIdx}
+async function fillPhotoLib(){const box=document.getElementById('phLib');if(!box)return;const idx=await loadPhotoIdx();
+  box.innerHTML=idx.length?idx.map((x,i)=>`<button data-phlib="${i}" title="${esc2(x.n||'')}" style="padding:4px;display:flex;flex-direction:column;align-items:center;gap:3px;max-width:84px"><img src="${photoSrc(x.p)}" style="height:54px;max-width:76px;object-fit:contain;background:#d8d8dc;border-radius:6px"><span style="font-size:11px;line-height:1.2">${esc2(x.n||'')}</span></button>`).join(''):'<span class="note">المكتبة فاضية لسه.</span>'}
 function updatePhoto(){const el=document.getElementById('photoBox');if(!el)return;const it=selId&&itemById(selId);if(!it){el.innerHTML='';return}
   const a=it.args||{},has=!!a.img,g=furnMap.get(selId),pw=g&&g.userData.photoW;
   el.innerHTML=`<h4>🖼 صورة حقيقية بدل المجسّم</h4><div class="note">ارفع صورة، أو الصقها، أو حط رابط صورة مباشر. الصورة بتحل محل القطعة في مكانها (بتتحفظ مع التصميم).</div>
@@ -568,12 +574,15 @@ function updatePhoto(){const el=document.getElementById('photoBox');if(!el)retur
   ${has?`<div class="row"><label>عرض الصورة</label><span style="display:flex;gap:6px;align-items:center"><button data-ph="pw:-.1" class="dimb">−10</button><b style="min-width:46px;text-align:center">${pw?pw.toFixed(2):'…'}</b><button data-ph="pw:.1" class="dimb">+10</button></span></div>
   <div class="row"><label>ارتفاع عن الأرض</label><span style="display:flex;gap:6px;align-items:center"><button data-ph="py:-.05" class="dimb">−5</button><b style="min-width:46px;text-align:center">${(a.py||0).toFixed(2)}</b><button data-ph="py:.05" class="dimb">+5</button></span></div>
   <div class="chips"><button data-ph="bill" class="${(a.bill==null?!BILL_OFF.includes(it.type):a.bill)?'on':''}">تواجهني دايمًا</button><button data-ph="del">رجّع المجسّم الأصلي</button></div>`:''}
+  <h4>مكتبة الصور</h4><div class="chips" id="phLib">…</div>
   <div class="note" id="phMsg" style="margin-top:6px"></div>
-  <div class="note" style="margin-top:6px">عايز أولّد الصورة بالذكاء الاصطناعي؟ ابعتلي الوصف أو الرابط في الشات وأنا أحطها لك.</div>`}
+  <div class="note" style="margin-top:6px">عايز أولّد الصورة بالذكاء الاصطناعي؟ ابعتلي الوصف أو الرابط في الشات وأنا أحطها لك.</div>`;fillPhotoLib()}
 async function uploadPhotos(){const todo=FURN.filter(i=>i.args&&typeof i.args.img==='string'&&i.args.img.startsWith('local:'));
   for(const it of todo){const id=it.args.img.slice(6),d=photoSrc(it.args.img);if(!d)throw new Error('صورة ناقصة على الجهاز ده');
     const path='apartments/'+APT+'/photos/'+id+'.png',r=await fetch(apiUrl(path),{method:'PUT',headers:Object.assign({'Content-Type':'application/json'},GH_H()),body:JSON.stringify({message:'Photo '+id,content:d.split(',')[1],branch:GH.branch})});
     if(!r.ok&&r.status!==422)throw await httpErr(r);
+    try{const ip='apartments/'+APT+'/photos/index.json';const cur=await ghGet(ip),arr=cur?cur.json:[];arr.push({p:'photos/'+id+'.png',n:(it.name||'').replace(/ \(جديد\)$/,''),w:it.args.pw||undefined});
+      await ghPut(ip,arr,cur&&cur.sha,'Photo index');photoIdx=arr}catch(e){}
     photoMem['photos/'+id+'.png']=d;patchItem(it.id,{args:Object.assign({},it.args,{img:'photos/'+id+'.png'})})}
   return todo.length}
 /* ----- edits: stored locally, shareable by link ----- */
@@ -583,7 +592,15 @@ const EKEY=()=>'prop:'+APT+':edits';
 function loadEdits(){
   try{const e=JSON.parse(localStorage.getItem(EKEY())||'null');if(e)edits=Object.assign(E0(),e)}catch(x){}
   const m=(location.hash||'').match(/e=([^&]+)/);if(m){try{edits=Object.assign(E0(),JSON.parse(decodeURIComponent(escape(atob(m[1])))));saveEdits();try{history.replaceState(null,'',location.pathname+location.search)}catch(x){}}catch(x){}}}
-function saveEdits(){try{localStorage.setItem(EKEY(),JSON.stringify(edits))}catch(x){}try{updateSaveBtn()}catch(x){}}
+let editHist=[],histLast=null,histSilent=false;
+function saveEdits(){const cur=JSON.stringify(edits);try{localStorage.setItem(EKEY(),cur)}catch(x){}
+  if(!histSilent&&histLast!==null&&cur!==histLast){editHist.push(histLast);if(editHist.length>80)editHist.shift()}histLast=cur;
+  try{updateSaveBtn()}catch(x){}}
+function undoEdit(){if(!editHist.length){toast('مفيش تعديلات تتراجع عنها');return}
+  const prev=editHist.pop();edits=Object.assign(E0(),JSON.parse(prev));histSilent=true;saveEdits();histSilent=false;
+  applyEdits();selWall=null;selOp=null;if(selId&&!itemById(selId))selId=null;rebuild();wallHL();renderTabs();renderLabels();updateSaveBtn();
+  toast('اتراجع عن آخر تعديل'+(editHist.length?' (فاضل '+editHist.length+' تعديل ممكن تتراجع عنهم)':''))}
+addEventListener('keydown',e=>{if((e.ctrlKey||e.metaKey)&&!e.shiftKey&&e.key.toLowerCase()==='z'&&!/INPUT|TEXTAREA|SELECT/.test((e.target||{}).tagName||'')){e.preventDefault();undoEdit()}});
 function deriveGeometry(){
   const walls=JSON.parse(JSON.stringify(MODEL.walls)),rooms=JSON.parse(JSON.stringify(MODEL.rooms));
   walls.forEach(w=>(w.op||[]).forEach((o,i)=>{if(!o.id)o.id=w.id+':'+i}));
@@ -601,7 +618,7 @@ function deriveGeometry(){
   }
   for(const id in (edits.r||{})){const r=rooms.find(x=>x.id===id);if(r)Object.assign(r,edits.r[id])}
   ROOMS=rooms;RM=Object.fromEntries(ROOMS.map(r=>[r.id,r]));WALLS=walls}
-function applyEdits(){deriveGeometry();FURN=MODEL.furniture.filter(i=>!edits.del.includes(i.id)).map(i=>Object.assign({},i,edits.mod[i.id]||{})).concat(edits.add.map(i=>Object.assign({},i)))}
+function applyEdits(){deriveGeometry();FURN=MODEL.furniture.filter(i=>!edits.del.includes(i.id)).map(i=>{const m=edits.mod[i.id]||{},r=Object.assign({},i,m);if(i.args&&m.args)r.args=Object.assign({},i.args,m.args);return r}).concat(edits.add.map(i=>Object.assign({},i)))}
 const itemById=id=>FURN.find(i=>i.id===id);
 function patchItem(id,p){const ai=edits.add.find(i=>i.id===id);if(ai)Object.assign(ai,p);else edits.mod[id]=Object.assign({},edits.mod[id]||{},p);saveEdits();applyEdits()}
 function refurnish(){furnGrp.children.slice().forEach(c=>furnGrp.remove(c));furnish();renderLabels();highlight()}
@@ -854,7 +871,8 @@ function setBase(s2){baseSha=s2;try{localStorage.setItem('prop:'+APT+':sha',s2)}
 const hasEdits=()=>!!(E0keys()||forceNext);
 const whoName=()=>{try{return localStorage.getItem('prop:who')||''}catch(e){return ''}};
 function deviceName(){let d='';try{d=localStorage.getItem('prop:device')||''}catch(e){}if(d)return d;const u=navigator.userAgent;return /iPhone/.test(u)?'iPhone':/iPad/.test(u)?'iPad':/Android/.test(u)?'Android':/Mac/.test(u)?'Mac':/Windows/.test(u)?'Windows':'جهاز'}
-function updateSaveBtn(){const b=document.getElementById('bSave');if(!b)return;
+function updateSaveBtn(){const u=document.getElementById('bUndo');if(u){u.disabled=!editHist.length;u.textContent='↩ تراجع'+(editHist.length?' ('+editHist.length+')':'')}
+  const b=document.getElementById('bSave');if(!b)return;
   const st=saving?'saving':(hasEdits()?'dirty':(lastBackup?'ok':''));
   b.textContent=st==='saving'?'⏳ بيحفظ…':st==='dirty'?'💾 احفظ ●':st==='ok'?'✔ محفوظ #'+lastBackup:'💾 احفظ';b.classList.toggle('warn',st==='dirty')}
 const GHK=()=>{try{return (localStorage.getItem('prop:ghtoken')||'').trim()}catch(e){return ''}};
@@ -867,7 +885,7 @@ async function ghGet(path){const r=await fetch(apiUrl(path)+'?ref='+GH.branch+'&
   return{sha:j.sha,json:JSON.parse(txt)}}
 const ghPut=(path,obj,sha,msg)=>fetch(apiUrl(path),{method:'PUT',headers:Object.assign({'Content-Type':'application/json'},GH_H()),body:JSON.stringify(Object.assign({message:msg,content:b64(JSON.stringify(obj,null,1)),branch:GH.branch},sha?{sha}:{}))});
 function refreshAll(){selId=null;selWall=null;selOp=null;rebuild();wallHL();renderTabs();renderLabels();updateSaveBtn()}
-function adoptModel(m){edits=E0();saveEdits();forceNext=false;applyModel(m);refreshAll()}
+function adoptModel(m){edits=E0();histSilent=true;saveEdits();histSilent=false;editHist=[];forceNext=false;applyModel(m);refreshAll()}
 async function syncPull(){
   syncMsg('بحمّل آخر نسخة من المستودع…');
   try{const cur=await ghGet(ghPath());if(!cur)throw new Error('الملف مش موجود');setBase(cur.sha);adoptModel(cur.json);syncMsg('اتحدّث من المستودع. تعديلاتك المحلية اتمسحت لأنها بقت جزء من النسخة.',true)}
@@ -1122,7 +1140,7 @@ function renderTabs(){
     <div class="chips">${ADDABLE.map(t=>`<button data-add="${t}">${TYPE_NAMES[t]}</button>`).join('')}</div>
     <h4>إظهار</h4>${tg('flab','أسماء العفش على الشاشة',ST.flab)}${tg('fdir','سهم أصفر بيبيّن اتجاه واجهة كل قطعة',ST.fdir)}
     <h4>حفظ ومشاركة</h4>
-    <div class="chips"><button data-act="copyedits">انسخ تعديلاتي</button><button data-act="copylink">انسخ رابط التصميم</button><button data-act="resetall">امسح كل التعديلات</button></div>
+    <div class="chips"><button data-act="copyedits">انسخ تعديلاتي</button><button data-act="copylink">انسخ رابط التصميم</button><button data-act="undo">↩ إلغاء آخر تعديل</button><button data-act="resetall">امسح كل التعديلات</button></div>
     <div class="note" id="copyMsg" style="margin-top:6px"></div>`;
     updateSelInfo();
   }else if(tab==='design'){
@@ -1209,6 +1227,8 @@ $('body').addEventListener('click',e=>{
   if(b.dataset.add){addItem(b.dataset.add);renderTabs();return}
   if(b.dataset.dp){const [k,v]=b.dataset.dp.split(':'),w=selWall&&WALLS.find(q=>q.id===selWall);if(!w||!selOp)return;
     const val=v==='-'?null:(k==='style'||k==='col')?v:+v;wallOp({t:'modop',wall:w.id,oid:selOp,patch:{[k]:val}});return}
+  if(b.dataset.phlib!=null){const x=(photoIdx||[])[+b.dataset.phlib],it=selId&&itemById(selId);if(!x||!it){phMsg('اختار قطعة الأول',true);return}
+    const a=Object.assign({},it.args||{});a.img=x.p;if(x.w)a.pw=x.w;else delete a.pw;delete a.py;patchItem(selId,{args:a});refurnish();updateDims();toast('اتحطت صورة «'+(x.n||'')+'»');return}
   if(b.dataset.ph){const k=b.dataset.ph,it=selId&&itemById(selId);
     if(k==='pick'){phFile.click();return}
     if(k==='paste'){(async()=>{try{const items=await navigator.clipboard.read();for(const i of items){const t=i.types.find(x=>x.startsWith('image/'));if(t){await usePhotoBlob(await i.getType(t));return}}phMsg('مفيش صورة في الحافظة. انسخ صورة الأول.',true)}catch(e){phMsg('الجهاز ما سمحش بالقراءة من الحافظة. اضغط مطوّلاً وإلصق (Ctrl+V) على الصفحة، أو استخدم «ارفع صورة».',true)}})();return}
@@ -1221,7 +1241,7 @@ $('body').addEventListener('click',e=>{
   if(b.dataset.bp){const [k,v]=b.dataset.bp.split(':'),it=selId&&itemById(selId);if(!it)return;patchItem(selId,{args:Object.assign({},it.args||{},{[k]:isNaN(+v)?v:+v})});refurnish();updateDims();return}
   if(b.dataset.dim){const [k,v]=b.dataset.dim.split(':');dimStep(k,+v);return}
   if(b.dataset.rk||b.dataset.rm||b.dataset.rk2){roomAct(b);return}
-  if(b.dataset.act){const a=b.dataset.act;if(a==='look'){applyLook();return}if(a==='centerwall'){moveToRoomWall(0,true);return}if(a==='fitwall'){fitWall(0);return}
+  if(b.dataset.act){const a=b.dataset.act;if(a==='look'){applyLook();return}if(a==='undo'){undoEdit();return}if(a==='centerwall'){moveToRoomWall(0,true);return}if(a==='fitwall'){fitWall(0);return}
   if(a==='snapwall'){const it=selId&&itemById(selId);const pp=it&&snapItemToWall(it);if(pp){patchItem(selId,pp);refurnish()}else toast('مفيش حيطة قريبة من القطعة دي')}else if(a==='straight'){const it=selId&&itemById(selId);if(it){patchItem(selId,{ry:+(Math.round((it.ry||0)/(Math.PI/2))*Math.PI/2).toFixed(4)});refurnish()}}else if(a==='dup')dupItem();else if(a==='del'){delItem();renderTabs()}else if(a==='reset')resetItem();else if(a==='resetall')resetAll();else if(a==='copyedits')copyText(editsText(),'copyMsg');else if(a==='copylink')copyText(shareLink(),'copyMsg');return}
   if(b.dataset.hr){ST.hour=+b.dataset.hr;setTime();renderTabs();dirty();return}
   const k=b.dataset.k;if(k==null)return;let v=b.dataset.v;
@@ -1284,7 +1304,7 @@ function applyQuality(){const q=ST.q;renderer.setPixelRatio(Math.min(devicePixel
   const sh=q!=='low';if(renderer.shadowMap.enabled!==sh){renderer.shadowMap.enabled=sh;scene.traverse(o=>{if(o.material)(Array.isArray(o.material)?o.material:[o.material]).forEach(m=>{m.needsUpdate=true})})}resize()}
 function resize(){const w=innerWidth,h=innerHeight;renderer.setSize(w,h,false);cam.aspect=w/h;cam.updateProjectionMatrix()}
 addEventListener('resize',resize);
-function applyModel(m){MODEL=m;Object.assign(P,m.params||{});ROOMS=m.rooms;RM=Object.fromEntries(ROOMS.map(r=>[r.id,r]));WALLS=m.walls;loadEdits();applyEdits()}
+function applyModel(m){MODEL=m;Object.assign(P,m.params||{});ROOMS=m.rooms;RM=Object.fromEntries(ROOMS.map(r=>[r.id,r]));WALLS=m.walls;loadEdits();if(histLast===null)histLast=JSON.stringify(edits);applyEdits()}
 let hudN=0,pAcc=0,pN=0,pDown=0;const pStart=performance.now();
 function perf(raw){if(performance.now()-pStart<5000||raw>.5||document.hidden)return;pAcc+=raw;pN++;if(pN>=75){const avg=pAcc/pN;pAcc=0;pN=0;if(avg>.04&&ST.q!=='low'&&pDown<2){pDown++;ST.q=ST.q==='high'?'mid':'low';applyQuality();rebuild();save();toast('الجهاز كان بيهنّج شوية، فنزّلت الجودة لـ «'+(ST.q==='mid'?'متوسطة':'خفيفة')+'» علشان الحركة تسلس. تغيّرها من «التحكم والأداء».')}}}
 function boot(){
@@ -1293,7 +1313,7 @@ function boot(){
   if(innerWidth<760)sheetOpen(false);
   let last=performance.now();
   (function loop(now){requestAnimationFrame(loop);const raw=(now-last)/1000,dt=Math.min(.05,raw);last=now;perf(raw);step(dt);billUpdate();drawMini();applyCam();if(mode==='walk'&&(mv.x||mv.y||glide||ST.spin||(++hudN%10===0)))hud();if(boxHelper)boxHelper.update();updateLabels();renderer.render(scene,cam)})(last);
-  $('bSave').onclick=()=>syncSave();updateSaveBtn();setTimeout(syncPoll,2500);
+  $('bSave').onclick=()=>syncSave();$('bUndo').onclick=undoEdit;updateSaveBtn();setTimeout(syncPoll,2500);
   window.__walk={colliders:()=>colliders,labelHidden,wallGrp:()=>wallGrp,fitWall,syncPoll,hasEdits,setRoom,restoreBackup,listBackups,dimStep,bakedModel,syncSave,syncPull,moveToRoomWall,putOnWall,snapItemToWall,itemById,get selId(){return selId},get selWall(){return selWall},get lastHit(){return lastHit},get pitch(){return pitch},set pitch(v){pitch=v},get pos(){return pos},get yaw(){return yaw},set yaw(v){yaw=v},get glide(){return glide},toast,wallOp,wallAction,OPINFO,get WALLS(){return WALLS},get ROOMS(){return ROOMS},setSel:(w,o)=>{selWall=w;selOp=o||null;wallHL();renderWallPanel()},ST,P,goPreset,setMode,rebuild,get Q(){return Q},cam,scene,get FURN(){return FURN},get edits(){return edits},selectItem,nudge,rotItem,addItem,delItem,orbit,focusRoom,orbitZoom,get mode(){return mode},enterHere,refurnish,furnMap};
 }
 (window.MODEL_INLINE?Promise.resolve(window.MODEL_INLINE):fetch('../apartments/'+APT+'/model.json').then(r=>{if(!r.ok)throw new Error('HTTP '+r.status);return r.json()}))

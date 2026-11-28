@@ -11,7 +11,7 @@ Private repo for the family's properties (apartment now; villa and chalet later)
 - Furniture types are built in the viewer's `BUILD` registry (sofa, bed, wardrobe, …). To move something the user names, edit its `x/z/ry` in `model.json` (find it by Arabic name/id). To add a type, add a builder to `BUILD`.
 - Layout variants: items with `when.layout` show only when that layout is selected (`liv`, `din`, `kit`, `b1`, `b2`).
 - Test every change with Playwright (swiftshader WebGL works; route cdnjs three to a local copy from `npm pack three@0.128.0`).
-- Publish the viewer as an artifact with `python3 tools/build_single.py apt1 out.html` then the Artifact tool (the old artifact URL for the apartment is https://claude.ai/artifact/C5eZfG8Ci5wqokLVbiGcU3 — republish the same file path to keep it).
+- Publish the viewer as an artifact with `python3 tools/build_single.py apt1 out.html` then the Artifact tool (current artifact, 2026-11-28: https://claude.ai/artifact/NLnHPSx7xUmu2yuxBsXFBo; the older C5eZfG8Ci5wqokLVbiGcU3 is stale. Republish with `url` to keep the link).
 - Commit with `git -c user.name="Claude" -c user.email="noreply@anthropic.com"`.
 
 ## Editing in the viewer
